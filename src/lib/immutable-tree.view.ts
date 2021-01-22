@@ -12,6 +12,7 @@ export namespace ImmutableTree {
             return v.toString(16);
         });
     }
+
     /*
     Node are immutable hierarchical data structure
     */
@@ -133,15 +134,16 @@ export namespace ImmutableTree {
         private tmpUpdates = new Array<Updates<NodeType>>()
         private historic = new Array<NodeType>()
         private currentIndex = 0
-
+        private subscriptions = new Subscription()
         expandedNodes$ : BehaviorSubject<Array<string>> = new BehaviorSubject<Array<string>>([])
         selectedNode$ : ReplaySubject<NodeType>
+
 
         constructor(
             {   rootNode, 
                 emitUpdate,
                 expandedNodes, 
-                selectedNode
+                selectedNode,
             }:
             {   rootNode: NodeType, 
                 emitUpdate?: boolean,
@@ -159,22 +161,24 @@ export namespace ImmutableTree {
                 ? expandedNodes
                 : new BehaviorSubject<Array<string>>(expandedNodes || [])
             
-            this.root$.pipe(
-                filter(node => node != undefined)
-            ).subscribe((root: NodeType) => {
-                this.root = root
-                this.children$.set(root, new ReplaySubject(1))
+            this.subscriptions.add(
+                this.root$.pipe(
+                    filter(node => node != undefined)
+                ).subscribe((root: NodeType) => {
+                    this.root = root
+                    this.children$.set(root, new ReplaySubject(1))
 
-                let indexHistory = this.historic.indexOf(root)
-                if (indexHistory == -1) {
-                    if (this.currentIndex < this.historic.length - 1)
-                        this.historic = this.historic.slice(0, this.currentIndex + 1 )
-                    this.historic.push(root)
-                    this.currentIndex = this.historic.length - 1
-                    return
-                }
-                this.currentIndex = indexHistory
-            })
+                    let indexHistory = this.historic.indexOf(root)
+                    if (indexHistory == -1) {
+                        if (this.currentIndex < this.historic.length - 1)
+                            this.historic = this.historic.slice(0, this.currentIndex + 1 )
+                        this.historic.push(root)
+                        this.currentIndex = this.historic.length - 1
+                        return
+                    }
+                    this.currentIndex = indexHistory
+                })
+            )
             if(rootNode)
                 this.reset(rootNode, emitUpdate )
         }
@@ -190,6 +194,10 @@ export namespace ImmutableTree {
             
             if(emitUpdate)
                 this.emitUpdate()
+        }
+
+        unsubscribe() {
+            this.subscriptions.unsubscribe()
         }
 
         getParent(nodeId) : NodeType {
@@ -215,14 +223,15 @@ export namespace ImmutableTree {
                 this.getChildren$(node).next(node.children)
                 return
             }
-
-            node.resolveChildren().subscribe((children: Array<NodeType>) => {
-                if (!children)
-                    return
-                children.forEach( (child => this.setParentRec(child, node)))
-                this.getChildren$(node).next(children)
-                then && then(node, children)
-            })
+            this.subscriptions.add(
+                node.resolveChildren().subscribe((children: Array<NodeType>) => {
+                    if (!children)
+                        return
+                    children.forEach( (child => this.setParentRec(child, node)))
+                    this.getChildren$(node).next(children)
+                    then && then(node, children)
+                }) 
+            )
         }
 
         getChildren$(node: Node) {
@@ -397,7 +406,6 @@ export namespace ImmutableTree {
                 node.children.forEach( child => this.setParentRec(child as NodeType,node) )
             }
         }
-
     }
 
     //-------------------------------------------------------------------------
