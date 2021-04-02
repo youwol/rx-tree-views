@@ -464,18 +464,26 @@ export namespace ImmutableTree {
             
             this.state = state
             this.headerView = headerView
-            this.subscriptions.push(
+
+            let content$ = child$( 
+                this.state.root$, 
+                (root) => {
+                    let rootView = this.nodeView( root, root, 0 ) 
+                    rootView.connectedCallback = (elem) => this.onConnectedCallbackRoot(elem)
+                    return rootView
+                })
+
+            this.children = [ content$]
+        }
+        
+        private onConnectedCallbackRoot(elem){
+            elem.subscriptions.push(
                 this.toggledNode$.pipe(
                     scan( (acc,nodeId) => acc.includes(nodeId) ? acc.filter( id => id!=nodeId) : acc.concat([nodeId]), [])
                 )
-                .subscribe( (nodeIds) => this.state.expandedNodes$.next(nodeIds) )
+                .subscribe( (nodeIds) => this.state.expandedNodes$.next(nodeIds) ) 
             )
-
             this.state.expandedNodes$.getValue().forEach( nodeId => this.toggledNode$.next(nodeId) )
-
-            let content$ = child$( this.state.root$, (root) => this.nodeView( root, root, 0 ) )
-
-            this.children = [ content$]
         }
 
         protected nodeView(root: NodeType, node: NodeType, depth: number) : VirtualDOM {
@@ -493,7 +501,7 @@ export namespace ImmutableTree {
                     this.rowView( root, node, nodeExpanded$, depth),
                     this.expandedContent$( root, node, nodeExpanded$, depth),
                     this.arianeLine( depth, isLeaf)
-                ]
+                ],
             }
         }
     
