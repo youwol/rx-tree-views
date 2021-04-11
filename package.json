@@ -1,48 +1,58 @@
 {
-  "name": "@youwol/fv-tree",
-  "keywords": [
-    "html",
-    "reactive-programming",
-    "rxjs",
-    "view",
-    "tree"
-  ],
-  "version": "0.0.3",
-  "description": "Tree views using flux-view",
-  "author": "Guillaume Reinisch",
-  "license": "MIT",
-  "homepage": "",
-  "main": "dist/@youwol/fv-tree.js",
-  "types": "src/index.ts",
-  "scripts": {
-    "build": "yarn build:dev",
-    "build:dev": "webpack --mode development",
-    "build:prod": "webpack --mode production",
-    "test": "jest -c ./jest.config.js --rootDir .",
-    "test-coverage": "jest -c ./jest.config.js --rootDir . --collect-coverage --collectCoverageFrom=./src/lib/**/*.ts --coverageDirectory=./coverage/$TARGET --runInBand",
-    "publish-npm-public": "yarn build:prod && yarn test-coverage && yarn publish --access public"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/youwol/fv-tree"
-  },
-  "peerDependencies": {
-    "@youwol/flux-view": "0.x",
-    "rxjs": "6.x"
-  },
-  "devDependencies": {
-    "@types/node": "14.14.16",
-    "@youwol/flux-view": "^0.0.5",
-    "awesome-typescript-loader": "5.2.1",
-    "eslint": "7.16.0",
-    "eslint-loader": "4.0.2",
-    "jest": "26.6.3",
-    "jest-junit": "12.0.0",
-    "rxjs": "6.x",
-    "rxjs-spy": "7.5.3",
-    "ts-jest": "26.4.4",
-    "typescript": "4.1.3",
-    "webpack": "^4.12.0",
-    "webpack-cli": "4.3.0"
-  }
+    "name": "@youwol/fv-tree",
+    "keywords": [
+        "html",
+        "reactive-programming",
+        "rxjs",
+        "view",
+        "tree"
+    ],
+    "version": "0.0.3",
+    "description": "Tree views using flux-view",
+    "author": "Guillaume Reinisch",
+    "license": "MIT",
+    "homepage": "",
+    "main": "dist/@youwol/fv-tree.js",
+    "types": "src/index.ts",
+    "scripts": {
+        "build": "yarn build:dev",
+        "build:dev": "webpack --mode development",
+        "build:prod": "webpack --mode production",
+        "test": "jest -c ./jest.config.js --rootDir .",
+        "test-coverage": "jest -c ./jest.config.js --rootDir . --collect-coverage --collectCoverageFrom=./src/lib/**/*.ts --coverageDirectory=./coverage/$TARGET --runInBand",
+        "publish-npm-public": "yarn build:prod && yarn test-coverage && yarn publish --access public"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/youwol/fv-tree"
+    },
+    "peerDependencies": {
+        "@youwol/flux-view": "0.x",
+        "rxjs": "6.x"
+    },
+    "devDependencies": {
+        "@types/node": "14.14.16",
+        "@youwol/flux-view": "^0.0.5",
+        "awesome-typescript-loader": "5.2.1",
+        "eslint": "7.16.0",
+        "eslint-loader": "4.0.2",
+        "jest": "26.6.3",
+        "jest-junit": "12.0.0",
+        "rxjs": "6.x",
+        "rxjs-spy": "7.5.3",
+        "ts-jest": "26.4.4",
+        "typescript": "4.1.3",
+        "webpack": "^4.12.0",
+        "webpack-cli": "4.3.0"
+    },
+    "youwol": {
+        "pipeline": {
+            "name": "yw_pipeline_webpack_ts",
+            "version": "0.0.0"
+        },
+        "cdnDependencies":{
+            "@youwol/flux-view": "0.x",
+            "rxjs": "6.x"
+        }
+    }
 }
