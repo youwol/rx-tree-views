@@ -70,7 +70,9 @@ export namespace ImmutableTree {
 
     export class InitCommand<NodeType extends Node> implements Command<NodeType>{
 
-        constructor(public readonly data){}
+        constructor(
+            public readonly data,
+            public readonly metadata: any = undefined) { }
 
         execute(tree: State<NodeType>, emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
         }
@@ -78,36 +80,49 @@ export namespace ImmutableTree {
 
     export class AddChildCommand<NodeType extends Node> implements Command<NodeType>{
 
-        constructor(public readonly parentNode: NodeType, public readonly childNode: NodeType){}
+        constructor(
+            public readonly parentNode: NodeType,
+            public readonly childNode: NodeType,
+            public readonly metadata: any = undefined) { }
 
-        execute(tree: State<NodeType>,emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
+        execute(tree: State<NodeType>, emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
             return tree.addChild(this.parentNode.id, this.childNode, emitUpdate, updatePropagationFct)
         }
     }
 
     export class RemoveNodeCommand<NodeType extends Node> implements Command<NodeType>{
 
-        constructor(public readonly parentNode: NodeType, public readonly removedNode: NodeType){}
+        constructor(
+            public readonly parentNode: NodeType,
+            public readonly removedNode: NodeType,
+            public readonly metadata: any = undefined) { }
 
-        execute(tree: State<NodeType>,emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
+        execute(tree: State<NodeType>, emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
             return tree.removeNode(this.removedNode.id, emitUpdate, updatePropagationFct)
         }
     }
 
     export class ReplaceNodeCommand<NodeType extends Node> implements Command<NodeType>{
 
-        constructor(public readonly oldNode:NodeType, public readonly newNode:NodeType){}
+        constructor(
+            public readonly oldNode: NodeType,
+            public readonly newNode: NodeType,
+            public readonly metadata: any = undefined) { }
 
-        execute(tree: State<NodeType>,emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
+        execute(tree: State<NodeType>, emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
             return tree.replaceNode(this.oldNode.id, this.newNode, emitUpdate, updatePropagationFct)
         }
     }
 
     export class ReplaceAttributesCommand<NodeType extends Node> implements Command<NodeType>{
 
-        constructor(public readonly node:NodeType, public readonly attributes: {[key:string]: any}){}
+        constructor(
+            public readonly node: NodeType,
+            public readonly attributes: { [key: string]: any },
+            public readonly metadata: any = undefined
+        ) { }
 
-        execute(tree: State<NodeType>,emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
+        execute(tree: State<NodeType>, emitUpdate: boolean = true, updatePropagationFct = (old) => ({})) {
             return tree.replaceAttributes(this.node.id, this.attributes, emitUpdate, updatePropagationFct)
         }
     }
@@ -269,7 +284,11 @@ export namespace ImmutableTree {
             return parent.children.find( node => node.id==id) as NodeType
         }
 
-        addChild( parent: string | NodeType, childNode: NodeType, emitUpdate = true, updatePropagationFct = (old) => ({})) {
+        addChild(
+            parent: string | NodeType,
+            childNode: NodeType,
+            emitUpdate = true, updatePropagationFct = (old) => ({}),
+            cmdMetadata = undefined) {
 
             let parentNode = (parent instanceof Node) ? parent : this.getNode(parent) 
 
@@ -289,7 +308,7 @@ export namespace ImmutableTree {
             newParent.children.forEach( child => this.setParentRec(child, newParent))
 
             this.root = this.cloneTreeAndReplacedChild(parentNode, newParent, updatePropagationFct)
-            let update =  new Updates( [], [childNode] , this.root, new AddChildCommand(parentNode, childNode) )
+            let update = new Updates([], [childNode], this.root, new AddChildCommand(parentNode, childNode, cmdMetadata))
             this.tmpUpdates.push(update)
 
             emitUpdate && this.emitUpdate()
@@ -297,7 +316,12 @@ export namespace ImmutableTree {
             return { root:this.root, update }
         }
 
-        removeNode( target: string | NodeType , emitUpdate = true, updatePropagationFct = (old) => ({})) {
+        removeNode(
+            target: string | NodeType,
+            emitUpdate = true,
+            updatePropagationFct = (old) => ({}),
+            cmdMetadata: any = undefined
+        ) {
 
             let node = (target instanceof Node) ? target: this.getNode(target)
 
@@ -323,7 +347,7 @@ export namespace ImmutableTree {
 
             this.root = this.cloneTreeAndReplacedChild(parentNode, newParent, updatePropagationFct = (old) => ({}))
 
-            let update =  new Updates( [node], [] , this.root, new RemoveNodeCommand(newParent, node) )
+            let update = new Updates([node], [], this.root, new RemoveNodeCommand(newParent, node, cmdMetadata))
             this.tmpUpdates.push(update)
 
             emitUpdate && this.emitUpdate()
@@ -331,7 +355,13 @@ export namespace ImmutableTree {
             return { root:this.root, update }
         }
 
-        replaceNode(target: string | NodeType, newNode, emitUpdate = true, updatePropagationFct = (old) => ({})) {
+        replaceNode(
+            target: string | NodeType,
+            newNode,
+            emitUpdate = true,
+            updatePropagationFct = (old) => ({}),
+            cmdMetadata: any = undefined
+        ) {
 
             let oldNode = (target instanceof Node) ? target: this.getNode(target)
 
@@ -341,7 +371,7 @@ export namespace ImmutableTree {
             newNode.children && newNode.children.forEach( child => this.setParentRec(child, newNode)  )
 
             this.root = this.cloneTreeAndReplacedChild(oldNode, newNode, updatePropagationFct)
-            let update =  new Updates( [oldNode], [newNode], this.root, new ReplaceNodeCommand(oldNode, newNode))
+            let update = new Updates([oldNode], [newNode], this.root, new ReplaceNodeCommand(oldNode, newNode, cmdMetadata))
             this.tmpUpdates.push(update)
 
             emitUpdate && this.emitUpdate()
@@ -349,7 +379,12 @@ export namespace ImmutableTree {
             return { root:this.root, update }
         }
 
-        replaceAttributes(target: string | NodeType, newAttributes, emitUpdate = true, updatePropagationFct = (old) => ({})) {
+        replaceAttributes(
+            target: string | NodeType,
+            newAttributes, emitUpdate = true,
+            updatePropagationFct = (old) => ({}),
+            cmdMetadata: any = undefined
+        ) {
 
             let node = (target instanceof Node) ? target: this.getNode(target)
 
@@ -359,7 +394,7 @@ export namespace ImmutableTree {
             let newNode = new node.factory( {...node, ...newAttributes, ...updatePropagationFct(node)} )as NodeType            
             newNode.children && newNode.children.forEach( c => this.parents[c.id] = newNode)
             this.root = this.cloneTreeAndReplacedChild(node, newNode, updatePropagationFct)
-            let update =  new Updates( [node], [newNode], this.root, new ReplaceAttributesCommand(node, newAttributes))
+            let update = new Updates([node], [newNode], this.root, new ReplaceAttributesCommand(node, newAttributes, cmdMetadata))
             this.tmpUpdates.push(update)
 
             emitUpdate && this.emitUpdate()
