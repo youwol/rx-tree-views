@@ -1,5 +1,5 @@
 import { attr$, child$, Stream$, VirtualDOM } from '@youwol/flux-view'
-import { BehaviorSubject, Observable, of, ReplaySubject, Subject, Subscription} from 'rxjs'
+import { BehaviorSubject, Observable, of, ReplaySubject, Subject, Subscription } from 'rxjs'
 import { distinct, filter, map, mergeMap, scan, share, switchMap, take, tap } from 'rxjs/operators';
 
 
@@ -22,21 +22,24 @@ export namespace ImmutableTree {
         public readonly factory: any
         public readonly id: string
 
-        constructor({id,children}:{id:string,children?:undefined | Array<Node> | Observable<Array<Node>>}){
+        constructor({ id, children }: { id: string, children?: undefined | Array<Node> | Observable<Array<Node>> }) {
             this.id = id
             this.factory = this['__proto__'].constructor
             this.children = children
         }
 
-        resolvedChildren() : Array<Node> {
-            if(!this.children || this.children instanceof Observable)
+        resolvedChildren(): Array<Node> {
+            if (!this.children || this.children instanceof Observable)
                 throw Error("Children are not defined or have no been resolved yet")
             return this.children
         }
 
-        resolveChildren() : Observable<Array<Node>> {
-            if(!this.children || Array.isArray(this.children))
+        resolveChildren(): Observable<Array<Node>> {
+            if (!this.children)
                 return
+            if (Array.isArray(this.children))
+                return of(this.children)
+
             return this.children.pipe(
                 take(1),
                 tap((children: Array<Node>) => {
@@ -44,28 +47,28 @@ export namespace ImmutableTree {
                         return
                     (this as any).children = children
                 }),
-                map( (children) => children ) 
+                map((children) => children)
             )
         }
     }
 
-    export function find( node: Node , fct ) {
+    export function find(node: Node, fct) {
 
-        if(fct(node))
+        if (fct(node))
             return node
-        if( !node.children || node.children instanceof Observable){
+        if (!node.children || node.children instanceof Observable) {
             return undefined
         }
-        for(let child of node.children ){
+        for (let child of node.children) {
             let target = find(child, fct)
-            if(target)
+            if (target)
                 return target
         }
     }
 
-    export interface Command<NodeType extends Node>{
+    export interface Command<NodeType extends Node> {
 
-        execute(tree: State<NodeType>, emitUpdate: boolean, updatePropagationFct ) 
+        execute(tree: State<NodeType>, emitUpdate: boolean, updatePropagationFct)
     }
 
     export class InitCommand<NodeType extends Node> implements Command<NodeType>{
@@ -129,53 +132,54 @@ export namespace ImmutableTree {
 
     export class Updates<NodeType extends Node> {
 
-        replacedNodes : Array<NodeType>
+        replacedNodes: Array<NodeType>
 
-        constructor(public readonly removedNodes: Array<NodeType>, public readonly addedNodes: Array<NodeType>, 
-            public readonly newTree: NodeType, public readonly command: Command<NodeType>){
-            this.replacedNodes = addedNodes.filter( newNode => removedNodes.find( oldNode => oldNode.id == newNode.id))
+        constructor(public readonly removedNodes: Array<NodeType>, public readonly addedNodes: Array<NodeType>,
+            public readonly newTree: NodeType, public readonly command: Command<NodeType>) {
+            this.replacedNodes = addedNodes.filter(newNode => removedNodes.find(oldNode => oldNode.id == newNode.id))
         }
     }
-    
-    
+
+
     export class State<NodeType extends Node> {
 
         public readonly root$ = new ReplaySubject<NodeType>(1)
         public readonly children$ = new Map<Node, ReplaySubject<Array<Node>>>()
         public readonly directUpdates$ = new ReplaySubject<Array<Updates<NodeType>>>()
 
-        private root : NodeType
-        private parents : {[key:string]: NodeType }
+        private root: NodeType
+        private parents: { [key: string]: NodeType }
         private tmpUpdates = new Array<Updates<NodeType>>()
         private historic = new Array<NodeType>()
         private currentIndex = 0
         private subscriptions = new Subscription()
-        expandedNodes$ : BehaviorSubject<Array<string>> = new BehaviorSubject<Array<string>>([])
-        selectedNode$ : ReplaySubject<NodeType>
+        expandedNodes$: BehaviorSubject<Array<string>> = new BehaviorSubject<Array<string>>([])
+        selectedNode$: ReplaySubject<NodeType>
 
 
         constructor(
-            {   rootNode, 
+            { rootNode,
                 emitUpdate,
-                expandedNodes, 
+                expandedNodes,
                 selectedNode,
             }:
-            {   rootNode: NodeType, 
-                emitUpdate?: boolean,
-                expandedNodes?: Array<string> | BehaviorSubject<Array<string>>, 
-                selectedNode?: ReplaySubject<NodeType>
-            }) {
+                {
+                    rootNode: NodeType,
+                    emitUpdate?: boolean,
+                    expandedNodes?: Array<string> | BehaviorSubject<Array<string>>,
+                    selectedNode?: ReplaySubject<NodeType>
+                }) {
 
             emitUpdate = emitUpdate != undefined ? emitUpdate : true
-            
-            this.selectedNode$ = selectedNode instanceof ReplaySubject 
+
+            this.selectedNode$ = selectedNode instanceof ReplaySubject
                 ? selectedNode
                 : new ReplaySubject<NodeType>(1)
 
-            this.expandedNodes$ = expandedNodes instanceof BehaviorSubject 
+            this.expandedNodes$ = expandedNodes instanceof BehaviorSubject
                 ? expandedNodes
                 : new BehaviorSubject<Array<string>>(expandedNodes || [])
-            
+
             this.subscriptions.add(
                 this.root$.pipe(
                     filter(node => node != undefined)
@@ -186,7 +190,7 @@ export namespace ImmutableTree {
                     let indexHistory = this.historic.indexOf(root)
                     if (indexHistory == -1) {
                         if (this.currentIndex < this.historic.length - 1)
-                            this.historic = this.historic.slice(0, this.currentIndex + 1 )
+                            this.historic = this.historic.slice(0, this.currentIndex + 1)
                         this.historic.push(root)
                         this.currentIndex = this.historic.length - 1
                         return
@@ -194,20 +198,20 @@ export namespace ImmutableTree {
                     this.currentIndex = indexHistory
                 })
             )
-            if(rootNode)
-                this.reset(rootNode, emitUpdate )
+            if (rootNode)
+                this.reset(rootNode, emitUpdate)
         }
 
-        reset(root: NodeType, emitUpdate = true){
+        reset(root: NodeType, emitUpdate = true) {
             this.parents = {}
             this.historic = []
             this.currentIndex = 0
             this.setParentRec(root, undefined)
             this.root = root
-            let update =  new Updates( [], [] , this.root, new InitCommand(root) )
+            let update = new Updates([], [], this.root, new InitCommand(root))
             this.tmpUpdates.push(update)
-            
-            if(emitUpdate)
+
+            if (emitUpdate)
                 this.emitUpdate()
         }
 
@@ -215,24 +219,24 @@ export namespace ImmutableTree {
             this.subscriptions.unsubscribe()
         }
 
-        getParent(nodeId) : NodeType {
+        getParent(nodeId): NodeType {
             return this.parents[nodeId]
         }
 
-        reducePath( start : string | NodeType , extractFct : (NodeType)=> any ) : Array<any> {
+        reducePath(start: string | NodeType, extractFct: (NodeType) => any): Array<any> {
 
-            if(start==undefined)
+            if (start == undefined)
                 return []
 
-            let node = (start instanceof Node) ? start : this.getNode(start) 
+            let node = (start instanceof Node) ? start : this.getNode(start)
 
             return this.reducePath(this.getParent(node.id), extractFct).concat([extractFct(node)])
         }
 
         getChildren(node: NodeType, then?: (node: NodeType, children: Array<NodeType>) => void) {
 
-            if(!node.children)
-                return 
+            if (!node.children)
+                return
 
             if (Array.isArray(node.children)) {
                 this.getChildren$(node).next(node.children)
@@ -242,10 +246,10 @@ export namespace ImmutableTree {
                 node.resolveChildren().subscribe((children: Array<NodeType>) => {
                     if (!children)
                         return
-                    children.forEach( (child => this.setParentRec(child, node)))
+                    children.forEach((child => this.setParentRec(child, node)))
                     this.getChildren$(node).next(children)
                     then && then(node, children)
-                }) 
+                })
             )
         }
 
@@ -271,17 +275,17 @@ export namespace ImmutableTree {
             this.root$.next(this.historic[this.currentIndex + 1])
         }
 
-        getNode(id) : NodeType{
-            
-            if(id==this.root.id)
+        getNode(id): NodeType {
+
+            if (id == this.root.id)
                 return this.root
 
             let parent = this.parents[id] || this.root
 
             if (!parent.children || parent.children instanceof Observable) {
                 throw Error(" Can not get node od unresolved parent")
-            } 
-            return parent.children.find( node => node.id==id) as NodeType
+            }
+            return parent.children.find(node => node.id == id) as NodeType
         }
 
         addChild(
@@ -290,30 +294,30 @@ export namespace ImmutableTree {
             emitUpdate = true, updatePropagationFct = (old) => ({}),
             cmdMetadata = undefined) {
 
-            let parentNode = (parent instanceof Node) ? parent : this.getNode(parent) 
+            let parentNode = (parent instanceof Node) ? parent : this.getNode(parent)
 
-            if(!parentNode)
+            if (!parentNode)
                 throw Error("Can not find the parent to add the child")
 
             if (!parentNode.children || parentNode.children instanceof Observable)
                 throw Error("You can not add a child to a node not already resolved")
-    
-            let newChild = new childNode.factory({ ...childNode, ...updatePropagationFct(childNode)} ) as NodeType
+
+            let newChild = new childNode.factory({ ...childNode, ...updatePropagationFct(childNode) }) as NodeType
             let newParent = new parentNode.factory({
                 ...parentNode,
-                ...{ children:parentNode.children.concat(newChild) },
+                ...{ children: parentNode.children.concat(newChild) },
                 ...updatePropagationFct(parentNode)
-            }) 
-                
-            newParent.children.forEach( child => this.setParentRec(child, newParent))
+            })
+
+            newParent.children.forEach(child => this.setParentRec(child, newParent))
 
             this.root = this.cloneTreeAndReplacedChild(parentNode, newParent, updatePropagationFct)
             let update = new Updates([], [childNode], this.root, new AddChildCommand(parentNode, childNode, cmdMetadata))
             this.tmpUpdates.push(update)
 
             emitUpdate && this.emitUpdate()
-            
-            return { root:this.root, update }
+
+            return { root: this.root, update }
         }
 
         removeNode(
@@ -323,14 +327,14 @@ export namespace ImmutableTree {
             cmdMetadata: any = undefined
         ) {
 
-            let node = (target instanceof Node) ? target: this.getNode(target)
+            let node = (target instanceof Node) ? target : this.getNode(target)
 
-            if(!node)
+            if (!node)
                 throw Error("Can not find the node to remove")
 
             let parentNode = this.parents[node.id]
 
-            if(!parentNode)
+            if (!parentNode)
                 throw Error("Can not find the parent of the node to remove")
 
             if (!parentNode.children || parentNode.children instanceof Observable)
@@ -338,10 +342,11 @@ export namespace ImmutableTree {
 
             let newParent = new parentNode.factory({
                 ...parentNode,
-                ...{ children:parentNode.children.filter(child=>child.id!= node.id) }}) 
+                ...{ children: parentNode.children.filter(child => child.id != node.id) }
+            })
 
-            delete this.parents[node.id] 
-            newParent.children && newParent.children.forEach( c => this.parents[c.id] = newParent)
+            delete this.parents[node.id]
+            newParent.children && newParent.children.forEach(c => this.parents[c.id] = newParent)
 
             this.children$.has(node) && this.children$.delete(node)
 
@@ -351,8 +356,8 @@ export namespace ImmutableTree {
             this.tmpUpdates.push(update)
 
             emitUpdate && this.emitUpdate()
-            
-            return { root:this.root, update }
+
+            return { root: this.root, update }
         }
 
         replaceNode(
@@ -363,20 +368,20 @@ export namespace ImmutableTree {
             cmdMetadata: any = undefined
         ) {
 
-            let oldNode = (target instanceof Node) ? target: this.getNode(target)
+            let oldNode = (target instanceof Node) ? target : this.getNode(target)
 
-            if(!oldNode)
+            if (!oldNode)
                 throw Error("Can not find the node to remove")
-        
-            newNode.children && newNode.children.forEach( child => this.setParentRec(child, newNode)  )
+
+            newNode.children && newNode.children.forEach(child => this.setParentRec(child, newNode))
 
             this.root = this.cloneTreeAndReplacedChild(oldNode, newNode, updatePropagationFct)
             let update = new Updates([oldNode], [newNode], this.root, new ReplaceNodeCommand(oldNode, newNode, cmdMetadata))
             this.tmpUpdates.push(update)
 
             emitUpdate && this.emitUpdate()
-            
-            return { root:this.root, update }
+
+            return { root: this.root, update }
         }
 
         replaceAttributes(
@@ -386,32 +391,32 @@ export namespace ImmutableTree {
             cmdMetadata: any = undefined
         ) {
 
-            let node = (target instanceof Node) ? target: this.getNode(target)
+            let node = (target instanceof Node) ? target : this.getNode(target)
 
-            if(!node)
+            if (!node)
                 throw Error("Can not find the node to remove")
-            
-            let newNode = new node.factory( {...node, ...newAttributes, ...updatePropagationFct(node)} )as NodeType            
-            newNode.children && newNode.children.forEach( c => this.parents[c.id] = newNode)
+
+            let newNode = new node.factory({ ...node, ...newAttributes, ...updatePropagationFct(node) }) as NodeType
+            newNode.children && newNode.children.forEach(c => this.parents[c.id] = newNode)
             this.root = this.cloneTreeAndReplacedChild(node, newNode, updatePropagationFct)
             let update = new Updates([node], [newNode], this.root, new ReplaceAttributesCommand(node, newAttributes, cmdMetadata))
             this.tmpUpdates.push(update)
 
             emitUpdate && this.emitUpdate()
-            
-            return { root:this.root, update }
+
+            return { root: this.root, update }
         }
 
-        emitUpdate(){
+        emitUpdate() {
             this.root$.next(this.root)
             this.directUpdates$.next(this.tmpUpdates)
             this.tmpUpdates = []
         }
 
         private cloneTreeAndReplacedChild<NodeType extends Node>(oldChild: NodeType, newChild: NodeType, updatePropagationFct) {
-        
+
             let oldParent = this.parents[oldChild.id]
-            if(oldParent == undefined )
+            if (oldParent == undefined)
                 return newChild
 
             if (!oldParent.children || oldParent.children instanceof Observable)
@@ -419,26 +424,26 @@ export namespace ImmutableTree {
 
             let newParent = new oldParent.factory({
                 ...oldParent,
-                ...{ 
-                    children:oldParent.children.map( child => child.id == oldChild.id ? newChild : child)
+                ...{
+                    children: oldParent.children.map(child => child.id == oldChild.id ? newChild : child)
                 },
                 ...updatePropagationFct(oldParent)
-            }) 
-            newParent.children.forEach( child => this.parents[child.id] = newParent )
+            })
+            newParent.children.forEach(child => this.parents[child.id] = newParent)
 
-            if(this.children$.has(oldChild)){
-                this.children$.delete(oldChild) 
+            if (this.children$.has(oldChild)) {
+                this.children$.delete(oldChild)
                 this.getChildren$(newChild)
             }
-                
+
             return this.cloneTreeAndReplacedChild(oldParent, newParent, updatePropagationFct)
         }
 
-        private setParentRec(node:NodeType, parentNode:NodeType | undefined ) {
-            
-            this.parents[node.id] = parentNode 
-            if(node.children && Array.isArray(node.children)){
-                node.children.forEach( child => this.setParentRec(child as NodeType,node) )
+        private setParentRec(node: NodeType, parentNode: NodeType | undefined) {
+
+            this.parents[node.id] = parentNode
+            if (node.children && Array.isArray(node.children)) {
+                node.children.forEach(child => this.setParentRec(child as NodeType, node))
             }
         }
     }
@@ -456,119 +461,122 @@ export namespace ImmutableTree {
 
     export class View<NodeType extends Node> implements VirtualDOM {
 
-        static options : TOptions = {
+        static options: TOptions = {
             classes: {
                 header: "d-flex align-items-baseline fv-tree-header ",
-                headerSelected: "fv-tree-selected fv-text-focus" 
+                headerSelected: "fv-tree-selected fv-text-focus"
             },
             stepPadding: 15
-        } 
+        }
 
         public readonly state: State<NodeType>
         public readonly tag = 'div'
-        public readonly children : [VirtualDOM]
+        public readonly children: [VirtualDOM]
 
-        public readonly contextMenu$ = new Subject<{ 
-            event: MouseEvent, 
-            data: {state: State<any>, node: NodeType, root: NodeType}}>()
-           
+        public readonly contextMenu$ = new Subject<{
+            event: MouseEvent,
+            data: { state: State<any>, node: NodeType, root: NodeType }
+        }>()
+
         private readonly toggledNode$ = new Subject<string>()
         private readonly subscriptions = new Array<Subscription>()
 
-        private readonly headerView : THeaderView<NodeType>
-        private readonly options : TOptions
+        private readonly headerView: THeaderView<NodeType>
+        private readonly options: TOptions
 
         connectedCallback = (elem) => {
             elem.subscriptions = elem.subscriptions.concat(this.subscriptions)
         }
 
         constructor(
-            {   state,
+            { state,
                 headerView,
                 options,
                 ...rest
             }:
-            {
-                state: State<NodeType>,
-                headerView: THeaderView<NodeType>
-                 options?: TOptions
-            }) {
-            
-            Object.assign( this, rest)
-            this.options = Object.assign( View.options, options)
-            
+                {
+                    state: State<NodeType>,
+                    headerView: THeaderView<NodeType>
+                    options?: TOptions
+                }) {
+
+            Object.assign(this, rest)
+            this.options = Object.assign(View.options, options)
+
             this.state = state
             this.headerView = headerView
 
-            let content$ = child$( 
-                this.state.root$, 
+            let content$ = child$(
+                this.state.root$,
                 (root) => {
-                    let rootView = this.nodeView( root, root, 0 ) 
+                    let rootView = this.nodeView(root, root, 0)
                     rootView.connectedCallback = (elem) => this.onConnectedCallbackRoot(elem)
                     return rootView
                 })
 
-            this.children = [ content$]
-        }
-        
-        private onConnectedCallbackRoot(elem){
-            elem.subscriptions.push(
-                this.toggledNode$.pipe(
-                    scan( (acc,nodeId) => acc.includes(nodeId) ? acc.filter( id => id!=nodeId) : acc.concat([nodeId]), [])
-                )
-                .subscribe( (nodeIds) => this.state.expandedNodes$.next(nodeIds) ) 
-            )
-            this.state.expandedNodes$.getValue().forEach( nodeId => this.toggledNode$.next(nodeId) )
+            this.children = [content$]
         }
 
-        protected nodeView(root: NodeType, node: NodeType, depth: number) : VirtualDOM {
-                
-            let isLeaf = node.children == undefined
-            let nodeExpanded$ = this.state.expandedNodes$.pipe( 
-                map( expandedNodes => expandedNodes.indexOf(node.id) > -1),
-                tap( expanded => expanded ? this.state.getChildren(node) : {} )
+        private onConnectedCallbackRoot(elem) {
+            elem.subscriptions.push(
+                this.toggledNode$.pipe(
+                    scan((acc, nodeId) => acc.includes(nodeId) ? acc.filter(id => id != nodeId) : acc.concat([nodeId]), [])
+                )
+                    .subscribe((nodeIds) => this.state.expandedNodes$.next(nodeIds))
             )
-            
+            this.state.expandedNodes$.getValue().forEach(nodeId => this.toggledNode$.next(nodeId))
+        }
+
+        protected nodeView(root: NodeType, node: NodeType, depth: number): VirtualDOM {
+
+            let isLeaf = node.children == undefined
+            let nodeExpanded$ = this.state.expandedNodes$.pipe(
+                map(expandedNodes => expandedNodes.indexOf(node.id) > -1),
+                tap(expanded => expanded ? this.state.getChildren(node) : {})
+            )
+
             return {
-                id: "node-"+node.id,
+                id: "node-" + node.id,
                 style: { position: 'relative' },
                 children: [
-                    this.rowView( root, node, nodeExpanded$, depth),
-                    this.expandedContent$( root, node, nodeExpanded$, depth),
-                    this.arianeLine( depth, isLeaf)
+                    this.rowView(root, node, nodeExpanded$, depth),
+                    this.expandedContent$(root, node, nodeExpanded$, depth),
+                    this.arianeLine(depth, isLeaf)
                 ],
             }
         }
-    
-        protected rowView( root: NodeType, node: NodeType, nodeExpanded$: Observable<boolean>, depth: number ) {
-            
-            let space = this.leftSpacing( depth) 
+
+        protected rowView(root: NodeType, node: NodeType, nodeExpanded$: Observable<boolean>, depth: number) {
+
+            let space = this.leftSpacing(depth)
             let itemHeader = this.headerView(this.state, node, root)
 
             let class$ = attr$(
-                this.state.selectedNode$, 
-                (selected: any) => (selected != undefined && selected === node) 
+                this.state.selectedNode$,
+                (selected: any) => (selected != undefined && selected === node)
                     ? this.options.classes.headerSelected
                     : "",
-                { wrapper: (d) => this.options.classes.header+ " " + d,
-                  untilFirst: this.options.classes.header }
+                {
+                    wrapper: (d) => this.options.classes.header + " " + d,
+                    untilFirst: this.options.classes.header
+                }
             )
 
             return {
                 class: class$,
                 children: [
-                    {   style: { 'min-width': space + "px" } },
+                    { style: { 'min-width': space + "px" } },
                     this.handleView(node, nodeExpanded$),
-                    itemHeader                    
+                    itemHeader
                 ],
                 oncontextmenu: (event) => {
                     event.preventDefault()
                     this.state.selectedNode$.next(node);
-                    this.contextMenu$.next({ event, data:{node, state: this.state, root} })
+                    this.contextMenu$.next({ event, data: { node, state: this.state, root } })
                 },
-                onclick: (_: MouseEvent) => {                        
+                onclick: (_: MouseEvent) => {
                     this.state.selectedNode$.next(node);
-                    if(!this.state.expandedNodes$.getValue().includes(node.id))
+                    if (!this.state.expandedNodes$.getValue().includes(node.id))
                         this.toggledNode$.next(node.id);
                 }
             }
@@ -576,7 +584,7 @@ export namespace ImmutableTree {
 
         protected arianeLine(depth: number, isLeaf: boolean) {
 
-            let space = this.leftSpacing(depth) 
+            let space = this.leftSpacing(depth)
             return {
                 class: 'fv-tree-arianeLine',
                 style: {
@@ -590,12 +598,12 @@ export namespace ImmutableTree {
 
             let isLeaf = node.children == undefined
 
-            return isLeaf  ? {} : {
+            return isLeaf ? {} : {
                 tag: 'i',
                 class: attr$(
                     nodeExpanded$,
                     (expanded) => expanded ? "fa-caret-down fv-tree-expanded" : "fa-caret-right",
-                    { wrapper: (d) => "pr-2 fas fv-tree-expand "+d}
+                    { wrapper: (d) => "pr-2 fas fv-tree-expand " + d }
                 ),
                 onclick: (event) => {
                     this.toggledNode$.next(node.id);
@@ -604,24 +612,24 @@ export namespace ImmutableTree {
             }
         }
 
-        protected leftSpacing( depth: number) {
-            return  depth * this.options.stepPadding + 5   
+        protected leftSpacing(depth: number) {
+            return depth * this.options.stepPadding + 5
         }
 
-        protected expandedContent$( 
+        protected expandedContent$(
             root: NodeType, node: NodeType, nodeExpanded$: Observable<boolean>, depth: number) {
 
-            let children$ = this.state.getChildren$(node).pipe( 
-                filter(d => d != undefined), 
+            let children$ = this.state.getChildren$(node).pipe(
+                filter(d => d != undefined),
                 distinct()
             )
             return child$(
                 children$,
                 (children) => ({
-                    class: attr$( nodeExpanded$, (expanded) => expanded ? "d-block" : "d-none" ),
-                    children: children.map( child => this.nodeView(root, child, depth+1))
+                    class: attr$(nodeExpanded$, (expanded) => expanded ? "d-block" : "d-none"),
+                    children: children.map(child => this.nodeView(root, child, depth + 1))
                 })
-            )            
+            )
         }
     }
 }
