@@ -234,7 +234,7 @@ export namespace ImmutableTree {
             if(!node.children)
                 return 
 
-            if (!(node.children instanceof Observable)) {
+            if (Array.isArray(node.children)) {
                 this.getChildren$(node).next(node.children)
                 return
             }
