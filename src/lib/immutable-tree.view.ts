@@ -373,7 +373,7 @@ export namespace ImmutableTree {
             if (!oldNode)
                 throw Error("Can not find the node to remove")
 
-            newNode.children && newNode.children.forEach(child => this.setParentRec(child, newNode))
+            Array.isArray(newNode.children) && newNode.children.forEach(child => this.setParentRec(child, newNode))
 
             this.root = this.cloneTreeAndReplacedChild(oldNode, newNode, updatePropagationFct)
             let update = new Updates([oldNode], [newNode], this.root, new ReplaceNodeCommand(oldNode, newNode, cmdMetadata))
