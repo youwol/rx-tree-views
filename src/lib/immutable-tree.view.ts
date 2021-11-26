@@ -275,17 +275,17 @@ export namespace ImmutableTree {
             this.root$.next(this.historic[this.currentIndex + 1])
         }
 
-        getNode(id): NodeType {
+        getNode<T = NodeType>(id): T {
 
             if (id == this.root.id)
-                return this.root
+                return this.root as unknown as T
 
             let parent = this.parents[id] || this.root
 
             if (!parent.children || parent.children instanceof Observable) {
                 throw Error(" Can not get node od unresolved parent")
             }
-            return parent.children.find(node => node.id == id) as NodeType
+            return parent.children.find(node => node.id == id) as unknown as T
         }
 
         addChild(
