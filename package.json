@@ -18,10 +18,17 @@
         "build": "yarn build:dev",
         "build:dev": "webpack --mode development",
         "build:prod": "webpack --mode production",
-        "doc": "typedoc src/ --exclude src/index.ts --exclude src/tests --out dist/docs --theme default",
         "test": "jest -c ./jest.config.js --rootDir .",
         "test-coverage": "jest -c ./jest.config.js --rootDir . --collect-coverage --collectCoverageFrom=./src/lib/**/*.ts --coverageDirectory=./coverage/$TARGET --runInBand",
-        "publish-npm-public": "yarn build:prod && yarn test-coverage && yarn publish --access public"
+        "publish-npm-public": "yarn build:prod && yarn test-coverage && yarn publish --access public",
+        "lint-prettier": "prettier --check .",
+        "lint-eslint": "eslint .",
+        "eslint-fix-rule-ts": "yarn eslint --no-eslintrc --fix --parser '@typescript-eslint/parser' --parser-options '{\"tsconfigRootDir\" : \"./\", \"project\" : [\"tsconfig.json\"]}' --plugin '[\"jest\", \"import\", \"unused-imports\", \"@typescript-eslint\"]' --no-ignore 'src/**/*.ts' --rule",
+        "eslint-check-rule-ts": "yarn eslint --no-eslintrc --parser '@typescript-eslint/parser' --parser-options '{\"tsconfigRootDir\" : \"./\", \"project\" : [\"tsconfig.json\"]}' --plugin '[\"jest\", \"import\", \"unused-imports\", \"@typescript-eslint\"]' --no-ignore 'src/**/*.ts' --rule",
+        "lint": "yarn lint-prettier && yarn lint-eslint",
+        "format": "yarn format-prettier && yarn format-eslint",
+        "format-prettier": "prettier --write .",
+        "format-eslint": "eslint --fix ."
     },
     "repository": {
         "type": "git",
@@ -32,32 +39,29 @@
         "rxjs": "6.x"
     },
     "devDependencies": {
-        "@typescript-eslint/eslint-plugin": "^5.0.0",
-        "@typescript-eslint/parser": "^5.0.0",
         "@types/node": "14.14.16",
         "@youwol/flux-view": "^0.0.5",
+        "@typescript-eslint/eslint-plugin": "^5.0.0",
+        "@typescript-eslint/parser": "^5.0.0",
         "awesome-typescript-loader": "5.2.1",
-        "eslint": "7.23.0",
+        "eslint": "7.16.0",
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-eslint-comments": "^3.2.0",
         "eslint-plugin-import": "^2.25.2",
         "eslint-plugin-jest": "^25.2.2",
         "eslint-plugin-unused-imports": "^1.1.5",
-        "jest": "26.6.3",
-        "jest-junit": "12.0.0",
+        "eslint-webpack-plugin": "2.5.3",
         "prettier": "^2.4.1",
         "prettier-plugin-properties": "^0.1.0",
+        "eslint-loader": "4.0.2",
+        "jest": "26.6.3",
+        "jest-junit": "12.0.0",
         "rxjs": "6.x",
         "rxjs-spy": "7.5.3",
         "ts-jest": "26.4.4",
-        "ts-loader": "8.1.0",
-        "typedoc": "0.20.34",
-        "typescript": "4.2.3",
-        "webpack": "5.58.2",
-        "webpack-bundle-analyzer": "4.5.0",
-        "webpack-cli": "4.9.0",
-        "webpack-dev-server": "4.3.1",
-        "webpack-bundle-analyzer": "4.5.0"
+        "typescript": "4.1.3",
+        "webpack": "^4.12.0",
+        "webpack-cli": "4.3.0"
     },
     "youwol": {
         "pipeline": {
@@ -138,7 +142,8 @@
                 ],
                 "extends": [
                     "plugin:@typescript-eslint/recommended",
-                    "plugin:import/typescript"
+                    "plugin:import/typescript",
+                    "prettier"
                 ],
                 "parser": "@typescript-eslint/parser",
                 "parserOptions": {
@@ -173,7 +178,8 @@
                 ],
                 "extends": [
                     "plugin:jest/recommended",
-                    "plugin:jest/style"
+                    "plugin:jest/style",
+                    "prettier"
                 ],
                 "plugins": [
                     "jest"
