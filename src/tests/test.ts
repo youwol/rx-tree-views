@@ -34,7 +34,7 @@ function getOpenSubscriptions() {
                 ...{ [e.tag]: e.openSubscriptions.length },
             }),
             {},
-        ) as any
+        )
 }
 
 class Node extends ImmutableTree.Node {
@@ -145,7 +145,7 @@ test('subscriptions are closed', (done) => {
         headerView,
         id: 'tree-view',
         disconnectedCallback: () => state.unsubscribe(),
-    } as any)
+    })
 
     const div = render(view)
     document.body.appendChild(div)
@@ -170,12 +170,12 @@ test('subscriptions are closed', (done) => {
         expect(header.classList.contains('toto')).toBeTruthy()
     })
     let subs = getOpenSubscriptions()
-    expect(subs.class_drive).toEqual(1)
-    expect(subs.class_folderA).toEqual(1)
-    expect(subs.class_folderB).toEqual(1)
-    expect(subs.child_drive).toEqual(1)
-    expect(subs.child_folderA).toEqual(1)
-    expect(subs.child_folderB).toEqual(1)
+    expect(subs['class_drive']).toEqual(1)
+    expect(subs['class_folderA']).toEqual(1)
+    expect(subs['class_folderB']).toEqual(1)
+    expect(subs['child_drive']).toEqual(1)
+    expect(subs['child_folderA']).toEqual(1)
+    expect(subs['child_folderB']).toEqual(1)
 
     classSubject.next('tutu')
     headers.forEach((header) => {
@@ -186,14 +186,12 @@ test('subscriptions are closed', (done) => {
     headers = root.querySelectorAll('.test-header')
     expect(headers.length).toEqual(2)
     subs = getOpenSubscriptions()
-    expect(subs.class_folderA).toEqual(0)
-    expect(subs.child_folderA).toEqual(0)
+    expect(subs['class_folderA']).toEqual(0)
+    expect(subs['child_folderA']).toEqual(0)
 
     childSubject.next({ id: 'folderB', tag: 'first-test' })
     subs = getOpenSubscriptions()
-    expect(subs.class_child_folderB).toEqual(1)
-    let folderB = document.getElementById('header-folderB')
-    let text = folderB.outerHTML
+    expect(subs['class_child_folderB']).toEqual(1)
     const firstTestChild = document
         .getElementById('header-folderB')
         .querySelector('.tutu.first-test')
@@ -209,18 +207,16 @@ test('subscriptions are closed', (done) => {
     expect(secondTestChild).toBeTruthy()
 
     subs = getOpenSubscriptions()
-    expect(subs.class_child_folderB).toEqual(1)
+    expect(subs['class_child_folderB']).toEqual(1)
 
     state.replaceAttributes('folderB', { name: 'folderB-bis' })
-    folderB = document.getElementById('header-folderB')
+    let folderB = document.getElementById('header-folderB')
     expect(folderB).toBeTruthy()
-    text = root.querySelector('#header-folderB')['innerText']
+    const text = root.querySelector('#header-folderB')['innerText']
     expect(text).toEqual('folderB-bis')
 
     secondTestChild = folderB.querySelector('.tata.second-test')
     expect(secondTestChild).toBeTruthy()
-
-    subs = getOpenSubscriptions()
 
     state.replaceNode(
         'folderB',
@@ -230,44 +226,43 @@ test('subscriptions are closed', (done) => {
     expect(file).toBeTruthy()
 
     subs = getOpenSubscriptions()
-    let open = Object.entries(subs).filter(([k, v]) => v > 0)
+    let open = Object.entries(subs).filter(([_k, v]) => v > 0)
     expect(open.length).toEqual(4)
 
     state.undo()
     file = root.querySelector('#header-new-file')
     expect(file).toBeFalsy()
     folderB = document.getElementById('header-folderB')
-    text = folderB.outerHTML
     secondTestChild = folderB.querySelector('.tata.second-test')
     expect(secondTestChild).toBeTruthy()
     subs = getOpenSubscriptions()
 
-    expect(subs.class_drive).toEqual(1)
-    expect(subs.class_folderA).toEqual(0)
+    expect(subs['class_drive']).toEqual(1)
+    expect(subs['class_folderA']).toEqual(0)
     expect(subs['class_new-file']).toEqual(0)
-    expect(subs.class_folderB).toEqual(1)
-    expect(subs.child_drive).toEqual(1)
-    expect(subs.child_folderA).toEqual(0)
-    expect(subs.child_folderB).toEqual(1)
-    expect(subs.class_child_folderB).toEqual(1)
+    expect(subs['class_folderB']).toEqual(1)
+    expect(subs['child_drive']).toEqual(1)
+    expect(subs['child_folderA']).toEqual(0)
+    expect(subs['child_folderB']).toEqual(1)
+    expect(subs['class_child_folderB']).toEqual(1)
     expect(subs['child_new-file']).toEqual(0)
 
     state.redo()
     file = root.querySelector('#header-new-file')
     expect(file).toBeTruthy()
     subs = getOpenSubscriptions()
-    open = Object.entries(subs).filter(([k, v]) => v > 0)
+    open = Object.entries(subs).filter(([_k, v]) => v > 0)
     expect(open.length).toEqual(4)
-    expect(subs.class_drive).toEqual(1)
+    expect(subs['class_drive']).toEqual(1)
     expect(subs['class_new-file']).toEqual(1)
-    expect(subs.child_drive).toEqual(1)
+    expect(subs['child_drive']).toEqual(1)
     expect(subs['child_new-file']).toEqual(1)
 
     const s = state['subscriptions']
     expect(s.closed).toEqual(false)
     root.remove()
     subs = getOpenSubscriptions()
-    open = Object.entries(subs).filter(([k, v]) => v > 0)
+    open = Object.entries(subs).filter(([_k, v]) => v > 0)
     expect(open.length).toEqual(0)
 
     expect(s.closed).toEqual(true)
@@ -300,7 +295,7 @@ test('async rendering', (done) => {
         state,
         headerView,
         id: 'tree-view',
-    } as any)
+    })
 
     const div = render(view)
     document.body.appendChild(div)
