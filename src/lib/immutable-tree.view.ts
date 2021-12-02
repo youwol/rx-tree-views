@@ -25,8 +25,11 @@ export namespace ImmutableTree {
     Node are immutable hierarchical data structure
     */
     export class Node {
-        public children?: Array<Node> | Observable<Array<Node>>
-        public readonly factory: new (...args: unknown[]) => Node
+        public readonly children?:
+            | undefined
+            | Array<Node>
+            | Observable<Array<Node>>
+        public readonly factory: any
         public readonly id: string
 
         constructor({
@@ -34,7 +37,7 @@ export namespace ImmutableTree {
             children,
         }: {
             id: string
-            children?: Array<Node> | Observable<Array<Node>>
+            children?: undefined | Array<Node> | Observable<Array<Node>>
         }) {
             this.id = id
             this.factory = this['__proto__'].constructor
@@ -42,29 +45,22 @@ export namespace ImmutableTree {
         }
 
         resolvedChildren(): Array<Node> {
-            if (!this.children || this.children instanceof Observable) {
+            if (!this.children || this.children instanceof Observable)
                 throw Error(
                     'Children are not defined or have no been resolved yet',
                 )
-            }
             return this.children
         }
 
         resolveChildren(): Observable<Array<Node>> {
-            if (!this.children) {
-                return
-            }
-            if (Array.isArray(this.children)) {
-                return of(this.children)
-            }
+            if (!this.children) return
+            if (Array.isArray(this.children)) return of(this.children)
 
             return this.children.pipe(
                 take(1),
                 tap((children: Array<Node>) => {
-                    if (!children) {
-                        return
-                    }
-                    this.children = children
+                    if (!children) return
+                    ;(this as any).children = children
                 }),
                 map((children) => children),
             )
@@ -72,17 +68,13 @@ export namespace ImmutableTree {
     }
 
     export function find(node: Node, fct) {
-        if (fct(node)) {
-            return node
-        }
+        if (fct(node)) return node
         if (!node.children || node.children instanceof Observable) {
             return undefined
         }
         for (const child of node.children) {
             const target = find(child, fct)
-            if (target) {
-                return target
-            }
+            if (target) return target
         }
     }
 
@@ -99,16 +91,14 @@ export namespace ImmutableTree {
     {
         constructor(
             public readonly data,
-            public readonly metadata: Record<string, unknown> = undefined,
+            public readonly metadata: any = undefined,
         ) {}
 
         execute(
             tree: State<NodeType>,
-            _emitUpdate = true,
-            _updatePropagationFct = (_old) => ({}),
-        ) {
-            /*no op*/
-        }
+            emitUpdate = true,
+            updatePropagationFct = (old) => ({}),
+        ) {}
     }
 
     export class AddChildCommand<NodeType extends Node>
@@ -117,13 +107,13 @@ export namespace ImmutableTree {
         constructor(
             public readonly parentNode: NodeType,
             public readonly childNode: NodeType,
-            public readonly metadata: Record<string, unknown> = undefined,
+            public readonly metadata: any = undefined,
         ) {}
 
         execute(
             tree: State<NodeType>,
             emitUpdate = true,
-            updatePropagationFct = (_old) => ({}),
+            updatePropagationFct = (old) => ({}),
         ) {
             return tree.addChild(
                 this.parentNode.id,
@@ -140,13 +130,13 @@ export namespace ImmutableTree {
         constructor(
             public readonly parentNode: NodeType,
             public readonly removedNode: NodeType,
-            public readonly metadata: Record<string, unknown> = undefined,
+            public readonly metadata: any = undefined,
         ) {}
 
         execute(
             tree: State<NodeType>,
             emitUpdate = true,
-            updatePropagationFct = (_old) => ({}),
+            updatePropagationFct = (old) => ({}),
         ) {
             return tree.removeNode(
                 this.removedNode.id,
@@ -162,13 +152,13 @@ export namespace ImmutableTree {
         constructor(
             public readonly oldNode: NodeType,
             public readonly newNode: NodeType,
-            public readonly metadata: Record<string, unknown> = undefined,
+            public readonly metadata: any = undefined,
         ) {}
 
         execute(
             tree: State<NodeType>,
             emitUpdate = true,
-            updatePropagationFct = (_old) => ({}),
+            updatePropagationFct = (old) => ({}),
         ) {
             return tree.replaceNode(
                 this.oldNode.id,
@@ -184,14 +174,14 @@ export namespace ImmutableTree {
     {
         constructor(
             public readonly node: NodeType,
-            public readonly attributes: { [key: string]: unknown },
-            public readonly metadata: Record<string, unknown> = undefined,
+            public readonly attributes: { [key: string]: any },
+            public readonly metadata: any = undefined,
         ) {}
 
         execute(
             tree: State<NodeType>,
             emitUpdate = true,
-            updatePropagationFct = (_old) => ({}),
+            updatePropagationFct = (old) => ({}),
         ) {
             return tree.replaceAttributes(
                 this.node.id,
@@ -267,12 +257,11 @@ export namespace ImmutableTree {
 
                         const indexHistory = this.historic.indexOf(root)
                         if (indexHistory == -1) {
-                            if (this.currentIndex < this.historic.length - 1) {
+                            if (this.currentIndex < this.historic.length - 1)
                                 this.historic = this.historic.slice(
                                     0,
                                     this.currentIndex + 1,
                                 )
-                            }
                             this.historic.push(root)
                             this.currentIndex = this.historic.length - 1
                             return
@@ -280,9 +269,7 @@ export namespace ImmutableTree {
                         this.currentIndex = indexHistory
                     }),
             )
-            if (rootNode) {
-                this.reset(rootNode, emitUpdate)
-            }
+            if (rootNode) this.reset(rootNode, emitUpdate)
         }
 
         reset(root: NodeType, emitUpdate = true) {
@@ -294,9 +281,7 @@ export namespace ImmutableTree {
             const update = new Updates([], [], this.root, new InitCommand(root))
             this.tmpUpdates.push(update)
 
-            if (emitUpdate) {
-                this.emitUpdate()
-            }
+            if (emitUpdate) this.emitUpdate()
         }
 
         unsubscribe() {
@@ -307,13 +292,11 @@ export namespace ImmutableTree {
             return this.parents[nodeId]
         }
 
-        reducePath<T>(
+        reducePath(
             start: string | NodeType,
-            extractFct: (NodeType) => T,
-        ): Array<T> {
-            if (start == undefined) {
-                return []
-            }
+            extractFct: (NodeType) => any,
+        ): Array<any> {
+            if (start == undefined) return []
 
             const node = start instanceof Node ? start : this.getNode(start)
 
@@ -326,9 +309,7 @@ export namespace ImmutableTree {
             node: NodeType,
             then?: (node: NodeType, children: Array<NodeType>) => void,
         ) {
-            if (!node.children) {
-                return
-            }
+            if (!node.children) return
 
             if (Array.isArray(node.children)) {
                 this.getChildren$(node).next(node.children)
@@ -338,9 +319,7 @@ export namespace ImmutableTree {
                 node
                     .resolveChildren()
                     .subscribe((children: Array<NodeType>) => {
-                        if (!children) {
-                            return
-                        }
+                        if (!children) return
                         children.forEach((child) =>
                             this.setParentRec(child, node),
                         )
@@ -351,31 +330,24 @@ export namespace ImmutableTree {
         }
 
         getChildren$(node: Node) {
-            if (!this.children$.has(node)) {
+            if (!this.children$.has(node))
                 this.children$.set(node, new ReplaySubject(1))
-            }
 
             return this.children$.get(node)
         }
 
         undo() {
-            if (this.currentIndex == 0) {
-                return
-            }
+            if (this.currentIndex == 0) return
             this.root$.next(this.historic[this.currentIndex - 1])
         }
 
         redo() {
-            if (this.currentIndex == this.historic.length - 1) {
-                return
-            }
+            if (this.currentIndex == this.historic.length - 1) return
             this.root$.next(this.historic[this.currentIndex + 1])
         }
 
         getNode<T = NodeType>(id): T {
-            if (id == this.root.id) {
-                return this.root as unknown as T
-            }
+            if (id == this.root.id) return this.root as unknown as T
 
             const parent = this.parents[id] || this.root
 
@@ -389,24 +361,22 @@ export namespace ImmutableTree {
             parent: string | NodeType,
             childNode: NodeType,
             emitUpdate = true,
-            updatePropagationFct = (_old) => ({}),
+            updatePropagationFct = (old) => ({}),
             cmdMetadata = undefined,
         ) {
             const parentNode =
                 parent instanceof Node ? parent : this.getNode(parent)
 
-            if (!parentNode) {
+            if (!parentNode)
                 throw Error('Can not find the parent to add the child')
-            }
 
             if (
                 !parentNode.children ||
                 parentNode.children instanceof Observable
-            ) {
+            )
                 throw Error(
                     'You can not add a child to a node not already resolved',
                 )
-            }
 
             const newChild = new childNode.factory({
                 ...childNode,
@@ -416,7 +386,7 @@ export namespace ImmutableTree {
                 ...parentNode,
                 ...{ children: parentNode.children.concat(newChild) },
                 ...updatePropagationFct(parentNode),
-            }) as NodeType
+            })
 
             newParent.children.forEach((child) =>
                 this.setParentRec(child, newParent),
@@ -443,29 +413,25 @@ export namespace ImmutableTree {
         removeNode(
             target: string | NodeType,
             emitUpdate = true,
-            updatePropagationFct = (_old) => ({}),
-            cmdMetadata: Record<string, unknown> = undefined,
+            updatePropagationFct = (old) => ({}),
+            cmdMetadata: any = undefined,
         ) {
             const node = target instanceof Node ? target : this.getNode(target)
 
-            if (!node) {
-                throw Error('Can not find the node to remove')
-            }
+            if (!node) throw Error('Can not find the node to remove')
 
             const parentNode = this.parents[node.id]
 
-            if (!parentNode) {
+            if (!parentNode)
                 throw Error('Can not find the parent of the node to remove')
-            }
 
             if (
                 !parentNode.children ||
                 parentNode.children instanceof Observable
-            ) {
+            )
                 throw Error(
                     'You can not add a child to a node not already resolved',
                 )
-            }
 
             const newParent = new parentNode.factory({
                 ...parentNode,
@@ -474,7 +440,7 @@ export namespace ImmutableTree {
                         (child) => child.id != node.id,
                     ),
                 },
-            }) as NodeType
+            })
 
             delete this.parents[node.id]
             newParent.children &&
@@ -487,7 +453,7 @@ export namespace ImmutableTree {
             this.root = this.cloneTreeAndReplacedChild(
                 parentNode,
                 newParent,
-                updatePropagationFct,
+                (updatePropagationFct = (old) => ({})),
             )
 
             const update = new Updates(
@@ -507,15 +473,13 @@ export namespace ImmutableTree {
             target: string | NodeType,
             newNode,
             emitUpdate = true,
-            updatePropagationFct = (_old) => ({}),
-            cmdMetadata: Record<string, unknown> = undefined,
+            updatePropagationFct = (old) => ({}),
+            cmdMetadata: any = undefined,
         ) {
             const oldNode =
                 target instanceof Node ? target : this.getNode(target)
 
-            if (!oldNode) {
-                throw Error('Can not find the node to remove')
-            }
+            if (!oldNode) throw Error('Can not find the node to remove')
 
             Array.isArray(newNode.children) &&
                 newNode.children.forEach((child) =>
@@ -544,14 +508,12 @@ export namespace ImmutableTree {
             target: string | NodeType,
             newAttributes,
             emitUpdate = true,
-            updatePropagationFct = (_old) => ({}),
-            cmdMetadata: Record<string, unknown> = undefined,
+            updatePropagationFct = (old) => ({}),
+            cmdMetadata: any = undefined,
         ) {
             const node = target instanceof Node ? target : this.getNode(target)
 
-            if (!node) {
-                throw Error('Can not find the node to remove')
-            }
+            if (!node) throw Error('Can not find the node to remove')
 
             const newNode = new node.factory({
                 ...node,
@@ -584,24 +546,18 @@ export namespace ImmutableTree {
             this.tmpUpdates = []
         }
 
-        private cloneTreeAndReplacedChild(
+        private cloneTreeAndReplacedChild<NodeType extends Node>(
             oldChild: NodeType,
             newChild: NodeType,
             updatePropagationFct,
         ) {
             const oldParent = this.parents[oldChild.id]
-            if (oldParent == undefined) {
-                return newChild
-            }
+            if (oldParent == undefined) return newChild
 
-            if (
-                !oldParent.children ||
-                oldParent.children instanceof Observable
-            ) {
+            if (!oldParent.children || oldParent.children instanceof Observable)
                 throw Error(
                     'You can not add a child to a node not already resolved',
                 )
-            }
 
             const newParent = new oldParent.factory({
                 ...oldParent,
@@ -611,7 +567,7 @@ export namespace ImmutableTree {
                     ),
                 },
                 ...updatePropagationFct(oldParent),
-            }) as NodeType
+            })
             newParent.children.forEach(
                 (child) => (this.parents[child.id] = newParent),
             )
@@ -676,8 +632,8 @@ export namespace ImmutableTree {
         }
         stepPadding?: number
     }
-    type THeaderView<NodeType extends Node> = (
-        state: State<NodeType>,
+    type THeaderView<NodeType> = (
+        state: State<any>,
         node: NodeType,
         root: NodeType,
     ) => VirtualDOM
@@ -697,7 +653,7 @@ export namespace ImmutableTree {
 
         public readonly contextMenu$ = new Subject<{
             event: MouseEvent
-            data: { state: State<NodeType>; node: NodeType; root: NodeType }
+            data: { state: State<any>; node: NodeType; root: NodeType }
         }>()
 
         private readonly toggledNode$ = new Subject<string>()
@@ -719,7 +675,6 @@ export namespace ImmutableTree {
             state: State<NodeType>
             headerView: THeaderView<NodeType>
             options?: TOptions
-            [_key: string]: unknown
         }) {
             Object.assign(this, rest)
             this.options = Object.assign(View.options, options)
@@ -793,7 +748,7 @@ export namespace ImmutableTree {
 
             const class$ = attr$(
                 this.state.selectedNode$,
-                (selected) =>
+                (selected: any) =>
                     selected != undefined && selected === node
                         ? this.options.classes.headerSelected
                         : '',
@@ -820,11 +775,8 @@ export namespace ImmutableTree {
                 },
                 onclick: (_: MouseEvent) => {
                     this.state.selectedNode$.next(node)
-                    if (
-                        !this.state.expandedNodes$.getValue().includes(node.id)
-                    ) {
+                    if (!this.state.expandedNodes$.getValue().includes(node.id))
                         this.toggledNode$.next(node.id)
-                    }
                 },
             }
         }
@@ -856,7 +808,7 @@ export namespace ImmutableTree {
                       tag: 'i',
                       class: attr$(
                           nodeExpanded$,
-                          (expanded): string =>
+                          (expanded) =>
                               expanded
                                   ? 'fa-caret-down fv-tree-expanded'
                                   : 'fa-caret-right',
@@ -887,7 +839,7 @@ export namespace ImmutableTree {
                 class: attr$(nodeExpanded$, (expanded) =>
                     expanded ? 'd-block' : 'd-none',
                 ),
-                children: children.map((child: NodeType) =>
+                children: children.map((child) =>
                     this.nodeView(root, child, depth + 1),
                 ),
             }))

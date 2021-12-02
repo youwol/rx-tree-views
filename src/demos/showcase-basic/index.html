@@ -1,197 +1,241 @@
 <html>
+    <head>
+        <script src="https://unpkg.com/rxjs@6/bundles/rxjs.umd.min.js"></script>
 
-<head>
-    <script src="https://unpkg.com/rxjs@6/bundles/rxjs.umd.min.js"></script>
-
-    <script src="https://unpkg.com/@youwol/flux-view@0.0.5/dist/@youwol/flux-view.js"></script>
-    <script src="https://unpkg.com/@youwol/fv-input@0.0.0/dist/@youwol/fv-input.js"></script>
-    <script src="https://unpkg.com/@youwol/fv-button@0.0.0/dist/@youwol/fv-button.js"></script>   
-    <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/dist/@youwol/fv-tree.js"  ></script>
-    <!--
+        <script src="https://unpkg.com/@youwol/flux-view@0.0.5/dist/@youwol/flux-view.js"></script>
+        <script src="https://unpkg.com/@youwol/fv-input@0.0.0/dist/@youwol/fv-input.js"></script>
+        <script src="https://unpkg.com/@youwol/fv-button@0.0.0/dist/@youwol/fv-button.js"></script>
+        <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/dist/@youwol/fv-tree.js"></script>
+        <!--
         <script src="../../../dist/@youwol/fv-tree.js"  ></script>
         <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/dist/@youwol/fv-tree"  ></script>
     -->
-    <script>
-        let { render, attr$, child$ } = window["@youwol/flux-view"]
-        let { ImmutableTree } = window["@youwol/fv-tree"]
-        let { Select } = window["@youwol/fv-input"]
-        let { Button } = window["@youwol/fv-button"]
-        let { operators, of, from} = window["rxjs"]
-    </script>
-    
-    <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/src/demos/common.js"  ></script>
-    <!--
+        <script>
+            let { render, attr$, child$ } = window['@youwol/flux-view']
+            let { ImmutableTree } = window['@youwol/fv-tree']
+            let { Select } = window['@youwol/fv-input']
+            let { Button } = window['@youwol/fv-button']
+            let { operators, of, from } = window['rxjs']
+        </script>
+
+        <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/src/demos/common.js"></script>
+        <!--
         <script src="../common.js"></script>
         <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/src/demos/common.js"  ></script>
     -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
-        crossorigin="anonymous">
+        <link
+            rel="stylesheet"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+            integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+            crossorigin="anonymous"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
+            crossorigin="anonymous"
+        />
+    </head>
 
-</head>
+    <body class="hv-100 wv-100 fv-bg-background p-5">
+        <div id="header" class="my-5"></div>
 
-<body class="hv-100 wv-100 fv-bg-background p-5">
+        <div
+            id="container"
+            class="p-3 m-2 d-flex flex-column align-items-center fv-bg-background-alt"
+        >
+            <p class="fv-text-primary text-center">
+                A simple demo of tree view. A context menu can be displayed
+                using rigth-click on items.
+            </p>
+        </div>
 
-    <div id="header" class="my-5">
-    </div>
+        <script>
+            //--------------------------
+            // The hierachical structure
+            //---------------------------
 
-    <div id="container" class="p-3 m-2 d-flex flex-column align-items-center fv-bg-background-alt">
-        <p class='fv-text-primary text-center'>
-            A simple demo of tree view. A context menu can be displayed using rigth-click 
-            on items.
-        </p>
-    </div>
-
-
-    <script>
-
-        //--------------------------
-        // The hierachical structure
-        //---------------------------
-
-        var data = {
-            name: 'Drive', type: 'drive',
-            children: {
-                folderA: {
-                    name: 'FolderA', type: 'folder',
-                    children: {
-                        file1: { name: 'File1', type: 'file' },
-                        file2: { name: 'File2', type: 'file' }
-                    }
+            var data = {
+                name: 'Drive',
+                type: 'drive',
+                children: {
+                    folderA: {
+                        name: 'FolderA',
+                        type: 'folder',
+                        children: {
+                            file1: { name: 'File1', type: 'file' },
+                            file2: { name: 'File2', type: 'file' },
+                        },
+                    },
+                    folderB: {
+                        name: 'FolderB',
+                        type: 'folder',
+                        children: {
+                            file3: { name: 'File3', type: 'file' },
+                        },
+                    },
                 },
-                folderB: {
-                    name: 'FolderB', type: 'folder',
-                    children: {
-                        file3: { name: 'File3', type: 'file' }
-                    }
+            }
+
+            //------------------------
+            // The type of nodes
+            //------------------------
+
+            class Node extends ImmutableTree.Node {
+                constructor({ id, name, children, faClass }) {
+                    super({ id, children })
+                    this.name = name
+                    // FontAwesome class for icon, usually I try to separate view concerns from here, it is a shortcut
+                    this.faClass = faClass
                 }
             }
-        }
-
-        //------------------------
-        // The type of nodes
-        //------------------------
-
-        class Node extends ImmutableTree.Node {
-            
-            constructor({ id, name, children, faClass }) {
-                super({ id, children })
-                this.name = name
-                // FontAwesome class for icon, usually I try to separate view concerns from here, it is a shortcut
-                this.faClass = faClass 
+            class DriveNode extends Node {
+                constructor({ id, name, children }) {
+                    super({ id, name, children, faClass: 'fa-hdd' })
+                }
             }
-        }
-        class DriveNode extends Node {
-            constructor({ id, name, children }) { super({ id, name, children, faClass:'fa-hdd'}) }
-        }
-        class FolderNode extends Node {
-            constructor({ id, name, children }) { super({ id, name, children, faClass:'fa-folder' }) }
-        }
-        class FileNode extends Node {
-            constructor({ id, name }) { super({ id, name, children: undefined, faClass:'fa-file'}) }
-        }
+            class FolderNode extends Node {
+                constructor({ id, name, children }) {
+                    super({ id, name, children, faClass: 'fa-folder' })
+                }
+            }
+            class FileNode extends Node {
+                constructor({ id, name }) {
+                    super({ id, name, children: undefined, faClass: 'fa-file' })
+                }
+            }
 
-        let parse = (id, node) => {
+            let parse = (id, node) => {
+                let factory = {
+                    drive: DriveNode,
+                    folder: FolderNode,
+                    file: FileNode,
+                }
+                let children =
+                    node.children &&
+                    Object.entries(node.children).map(([id, child]) => {
+                        return parse(id, child)
+                    })
+                return new factory[node.type]({ id, name: node.name, children })
+            }
 
-            let factory = { drive: DriveNode, folder: FolderNode, file: FileNode }
-            let children = node.children && Object.entries(node.children).map(([id, child]) => {
-                return parse(id, child)
+            //------------------------
+            //------------------------
+
+            let treeState = new ImmutableTree.State({
+                rootNode: parse('drive', data),
             })
-            return new factory[node.type]({ id, name: node.name, children })
-        }
 
-        //------------------------
-        //------------------------
+            let treeView = new ImmutableTree.View({
+                class: 'fv-text-primary',
+                state: treeState,
+                headerView: (state, node) => ({
+                    class: 'd-flex align-items-center',
+                    children: [
+                        { class: `px-2 fas ${node.faClass}` },
+                        {
+                            innerText: node.name,
+                            class: 'fv-pointer',
+                            style: { 'user-select': 'none' },
+                        },
+                    ],
+                }),
+                connectedCallback: (elem) => {
+                    // pluging context menu: see code under 'actions available on right click'
+                    let sub = treeView.contextMenu$.subscribe(
+                        ({ event, data }) => {
+                            let actions = actionsFactory
+                                .filter((action) => action.test(data.node))
+                                .map(({ name, classes, vDOM, exe }) => ({
+                                    vDOM,
+                                    exe: () => exe(data.state, data.node),
+                                }))
+                            contextMenuView(actions, event, document.body)
+                        },
+                    )
+                    elem.subscriptions.push(sub)
+                },
+            })
+            document.getElementById('container').appendChild(render(treeView))
 
-        let treeState = new ImmutableTree.State({ rootNode: parse('drive', data) })
+            //---------------------------------
+            // context menu
+            //---------------------------------
 
-        let treeView = new ImmutableTree.View({
-            class: 'fv-text-primary',
-            state: treeState,
-            headerView: (state, node) => ({
+            let actionView = (text, faClass) => ({
                 class: 'd-flex align-items-center',
                 children: [
-                    { class: `px-2 fas ${node.faClass}`},
-                    { innerText: node.name, class: 'fv-pointer', style: { 'user-select': 'none' } }
-                ]
-            }),
-            connectedCallback: (elem) => {
+                    { tag: 'i', class: faClass },
+                    {
+                        tag: 'span',
+                        class: 'mx-3',
+                        innerText: text,
+                        style: { 'user-select': 'none' },
+                    },
+                ],
+            })
 
-                // pluging context menu: see code under 'actions available on right click' 
-                let sub = treeView.contextMenu$.subscribe(({ event, data }) => {
-
-                    let actions = actionsFactory
-                        .filter(action => action.test(data.node))
-                        .map(({ name, classes, vDOM, exe }) => ({ vDOM, exe: () => exe(data.state, data.node) }))
-                    contextMenuView(actions, event, document.body)
-                })
-                elem.subscriptions.push(sub)
+            let contextMenuView = (actions, ev) => {
+                let div = undefined
+                let vDOM = {
+                    class: 'py-1 fv-bg-primary-alt position-absolute',
+                    style: {
+                        top: `${ev.clientY - 25}px`,
+                        left: `${ev.clientX - 25}px`,
+                    },
+                    onmouseleave: () => div.remove(),
+                    children: actions.map((action) => ({
+                        class: 'px-3 fv-hover-text-focus fv-pointer',
+                        children: [action.vDOM],
+                        onclick: (ev) => {
+                            action.exe()
+                            div.remove()
+                        },
+                    })),
+                }
+                div = render(vDOM)
+                document.body.appendChild(div)
             }
-        })
-        document.getElementById("container").appendChild(render(treeView))
 
-        //---------------------------------
-        // context menu
-        //---------------------------------
-
-        let actionView = (text, faClass) => ({
-            class: 'd-flex align-items-center',
-            children: [
-                { tag: 'i', class: faClass },
-                { tag: 'span', class: 'mx-3', innerText: text, style: { 'user-select': 'none' } }
-            ]
-        })
-
-        let contextMenuView = (actions, ev) => {
-
-            let div = undefined
-            let vDOM = {
-                class: 'py-1 fv-bg-primary-alt position-absolute',
-                style: { 
-                    top: `${ev.clientY - 25}px`, 
-                    left: `${ev.clientX - 25}px` 
+            // Actions factory
+            let actionsFactory = [
+                {
+                    vDOM: actionView('do some stuff with drive', 'fas fa-hdd'),
+                    test: (node) => node instanceof DriveNode,
+                    exe: (state, node) =>
+                        console.log('do some stuff with drive', {
+                            state,
+                            node,
+                        }),
                 },
-                onmouseleave: () => div.remove(),
-                children: actions.map(action => ({
-                    class: 'px-3 fv-hover-text-focus fv-pointer',
-                    children: [action.vDOM],
-                    onclick: (ev) => { action.exe(); div.remove() }
-                }))
-            }
-            div = render(vDOM)
-            document.body.appendChild(div)
-        }
+                {
+                    vDOM: actionView(
+                        'do some stuff with folder',
+                        'fas fa-folder',
+                    ),
+                    test: (node) => node instanceof FolderNode,
+                    exe: (state, node) =>
+                        console.log('do some stuff with folder', {
+                            state,
+                            node,
+                        }),
+                },
+                {
+                    vDOM: actionView('do some stuff generic', 'fas fa-ghost'),
+                    test: (node) => node instanceof Node,
+                    exe: (state, node) =>
+                        console.log('do some stuff with any', { state, node }),
+                },
+            ]
 
-        // Actions factory 
-        let actionsFactory = [
-            {
-                vDOM: actionView("do some stuff with drive", "fas fa-hdd"),
-                test: (node) => node instanceof DriveNode,
-                exe: (state, node) => console.log("do some stuff with drive", { state, node })
-            },
-            {
-                vDOM: actionView("do some stuff with folder", "fas fa-folder"),
-                test: (node) => node instanceof FolderNode,
-                exe: (state, node) => console.log("do some stuff with folder", { state, node })
-            },
-            {
-                vDOM: actionView("do some stuff generic", "fas fa-ghost"),
-                test: (node) => node instanceof Node,
-                exe: (state, node) => console.log("do some stuff with any", { state, node })
-            }
-        ]
+            //---------------------
+            //  Done
+            //---------------------
 
-        //---------------------
-        //  Done
-        //---------------------
+            //---------------------------
+            // Option to select the theme, see ../common.js
+            //---------------------------
 
-        //---------------------------
-        // Option to select the theme, see ../common.js
-        //---------------------------
-
-        document.getElementById('header').appendChild(render(vDomThemes))
-    </script>
-</body>
-
+            document.getElementById('header').appendChild(render(vDomThemes))
+        </script>
+    </body>
 </html>
