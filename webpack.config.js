@@ -33,6 +33,7 @@ module.exports = {
                 commonjs2: '@youwol/flux-view',
                 root: ['@youwol/flux-view'],
             },
+            uuid: 'uuid',
         },
     ],
     module: {

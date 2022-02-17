@@ -1,12 +1,13 @@
-import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs'
-import { ImmutableTree } from '../index'
-
-import { filter, take } from 'rxjs/operators'
 import { attr$, child$, render } from '@youwol/flux-view'
+import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs'
+import { create, SnapshotPlugin } from 'rxjs-spy'
 
 import * as Match from 'rxjs-spy/cjs/match'
-import { create, SnapshotPlugin } from 'rxjs-spy'
 import { tag } from 'rxjs-spy/cjs/operators'
+
+import { filter, take } from 'rxjs/operators'
+import { v4 as uuidv4 } from 'uuid'
+import { ImmutableTree } from '../index'
 
 const spy = create()
 
@@ -353,7 +354,7 @@ test('commands', (done) => {
         cmd.execute(state)
     })
 
-    const uuid = ImmutableTree.uuid()
+    const uuid = uuidv4()
     state.root$.pipe(take(1)).subscribe((root) => {
         const folderA = ImmutableTree.find(root, (n) => n.id == 'folderA')
         expect(folderA.name).toEqual('FolderA-bis')
