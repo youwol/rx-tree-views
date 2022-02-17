@@ -303,24 +303,20 @@ export namespace ImmutableTree {
             if (!node.children) return
 
             if (Array.isArray(node.children)) {
-                this.getChildren$(node).next(node.children)
+                this.getChildren$(node).next(node.children as NodeType[])
                 return
             }
             this.subscriptions.add(
-                node
-                    .resolveChildren()
-                    .subscribe((children: Array<NodeType>) => {
-                        if (!children) return
-                        children.forEach((child) =>
-                            this.setParentRec(child, node),
-                        )
-                        this.getChildren$(node).next(children)
-                        then && then(node, children)
-                    }),
+                node.resolveChildren().subscribe((children: NodeType[]) => {
+                    if (!children) return
+                    children.forEach((child) => this.setParentRec(child, node))
+                    this.getChildren$(node).next(children)
+                    then && then(node, children)
+                }),
             )
         }
 
-        getChildren$(node: Node) {
+        getChildren$(node: NodeType) {
             if (!this.children$.has(node))
                 this.children$.set(node, new ReplaySubject(1))
 
@@ -800,11 +796,13 @@ export namespace ImmutableTree {
                       tag: 'i',
                       class: attr$(
                           nodeExpanded$,
-                          (expanded) =>
+                          (expanded): string =>
                               expanded
                                   ? 'fa-caret-down fv-tree-expanded'
                                   : 'fa-caret-right',
-                          { wrapper: (d) => 'pr-2 fas fv-tree-expand ' + d },
+                          {
+                              wrapper: (d) => 'pr-2 fas fv-tree-expand ' + d,
+                          },
                       ),
                       onclick: (event) => {
                           this.toggledNode$.next(node.id)
@@ -831,8 +829,9 @@ export namespace ImmutableTree {
                 class: attr$(nodeExpanded$, (expanded) =>
                     expanded ? 'd-block' : 'd-none',
                 ),
-                children: children.map((child) =>
-                    this.nodeView(root, child, depth + 1),
+                children: children.map(
+                    (child) =>
+                        this.nodeView(root, child as NodeType, depth + 1), // XXX : Conception problem type hierarchy
                 ),
             }))
         }
