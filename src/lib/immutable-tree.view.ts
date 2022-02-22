@@ -719,6 +719,7 @@ export namespace ImmutableTree {
             state: State<NodeType>
             headerView: THeaderView<NodeType>
             options?: TOptions
+            [_key: string]: unknown
         }) {
             Object.assign(this, rest)
             this.options = Object.assign(View.options, options)
