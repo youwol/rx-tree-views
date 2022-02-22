@@ -7,7 +7,7 @@
         "view",
         "tree"
     ],
-    "version": "0.0.5",
+    "version": "0.0.5-next",
     "description": "Tree views using flux-view",
     "author": "Guillaume Reinisch",
     "license": "MIT",
