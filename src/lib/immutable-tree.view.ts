@@ -307,10 +307,10 @@ export namespace ImmutableTree {
             return this.parents[nodeId]
         }
 
-        reducePath(
+        reducePath<T>(
             start: string | NodeType,
-            extractFct: (NodeType) => unknown,
-        ): Array<unknown> {
+            extractFct: (NodeType) => T,
+        ): Array<T> {
             if (start == undefined) {
                 return []
             }
