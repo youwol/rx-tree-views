@@ -856,7 +856,7 @@ export namespace ImmutableTree {
                       tag: 'i',
                       class: attr$(
                           nodeExpanded$,
-                          (expanded) =>
+                          (expanded): string =>
                               expanded
                                   ? 'fa-caret-down fv-tree-expanded'
                                   : 'fa-caret-right',
@@ -887,7 +887,7 @@ export namespace ImmutableTree {
                 class: attr$(nodeExpanded$, (expanded) =>
                     expanded ? 'd-block' : 'd-none',
                 ),
-                children: children.map((child) =>
+                children: children.map((child: NodeType) =>
                     this.nodeView(root, child, depth + 1),
                 ),
             }))
