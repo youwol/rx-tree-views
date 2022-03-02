@@ -2,10 +2,11 @@ node_modules
 dist
 coverage
 junit.xml
-
 npm-debug.log
 .env
 .DS_Store
 out-*
 result-*
 *.so
+*.iml
+cdn.zip
