@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { ImmutableTree } from '../index'
 
 const spy = create()
+// There is a lot of warning about cyclic dependencies...apparently it's still fine
+console.warn = (..._) => {}
 
 function getOpenSubscriptions() {
     const snapshotPlugin = spy.find(SnapshotPlugin)
