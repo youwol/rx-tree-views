@@ -1,6 +1,4 @@
-
 class ThemeItemData extends Select.ItemData {
-
     constructor(id, name) {
         super(id, name)
         //this.urlBase = '../../../../fv-widgets/assets/styles/'
@@ -9,7 +7,11 @@ class ThemeItemData extends Select.ItemData {
 
     link() {
         let link = document.createElement('link')
-        Object.assign(link, { id: 'theme-css', rel: 'stylesheet', href: this.urlBase + `style.${this.id}.css` })
+        Object.assign(link, {
+            id: 'theme-css',
+            rel: 'stylesheet',
+            href: this.urlBase + `style.${this.id}.css`,
+        })
         return link
     }
 }
@@ -21,8 +23,9 @@ let itemsCss = [
 let stateCss = new Select.State(itemsCss, 'youwol')
 
 let sub = stateCss.selection$.subscribe((themeItem) => {
-    if (document.getElementById("theme-css"))
-        document.getElementById("theme-css").remove()
+    if (document.getElementById('theme-css')) {
+        document.getElementById('theme-css').remove()
+    }
     document.head.appendChild(themeItem.link())
 })
 
@@ -30,9 +33,9 @@ var vDomThemes = {
     class: 'd-flex fv-text-focus justify-content-center',
     children: [
         { class: 'px-2', innerText: 'Current theme' },
-        new Select.View({ state: stateCss })
+        new Select.View({ state: stateCss }),
     ],
     connectedCallback: (elem) => {
         elem.subscriptions.push(sub)
-    }
+    },
 }

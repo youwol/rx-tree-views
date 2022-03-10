@@ -1,208 +1,265 @@
 <html>
+    <head>
+        <script src="https://unpkg.com/rxjs@6/bundles/rxjs.umd.min.js"></script>
 
-<head>
-    <script src="https://unpkg.com/rxjs@6/bundles/rxjs.umd.min.js"></script>
-
-    <script src="https://unpkg.com/@youwol/flux-view@0.0.5/dist/@youwol/flux-view.js"></script>
-    <script src="https://unpkg.com/@youwol/fv-input@0.0.0/dist/@youwol/fv-input.js"></script>
-    <script src="https://unpkg.com/@youwol/fv-button@0.0.1/dist/@youwol/fv-button.js"></script>    
-    <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/dist/@youwol/fv-tree.js"  ></script>
-    <!--
+        <script src="https://unpkg.com/@youwol/flux-view@0.0.5/dist/@youwol/flux-view.js"></script>
+        <script src="https://unpkg.com/@youwol/fv-input@0.0.0/dist/@youwol/fv-input.js"></script>
+        <script src="https://unpkg.com/@youwol/fv-button@0.0.1/dist/@youwol/fv-button.js"></script>
+        <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/dist/@youwol/fv-tree.js"></script>
+        <!--
         <script src="../../../dist/@youwol/fv-tree.js"  ></script>
         <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/dist/@youwol/fv-tree"  ></script>
     -->
 
-    <script>
-        let { render, attr$, child$ } = window["@youwol/flux-view"]
-        let { ImmutableTree } = window["@youwol/fv-tree"]
-        let { Select } = window["@youwol/fv-input"]
-        let { Button } = window["@youwol/fv-button"]
-        let { operators, of, from, BehaviorSubject} = window["rxjs"]
-    </script>
+        <script>
+            let { render, attr$, child$ } = window['@youwol/flux-view']
+            let { ImmutableTree } = window['@youwol/fv-tree']
+            let { Select } = window['@youwol/fv-input']
+            let { Button } = window['@youwol/fv-button']
+            let { operators, of, from, BehaviorSubject } = window['rxjs']
+        </script>
 
-    
-    <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/src/demos/common.js"  ></script>
-    <!--
+        <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/src/demos/common.js"></script>
+        <!--
         <script src="../common.js"></script>
         <script src="https://unpkg.com/@youwol/fv-tree@0.0.1/src/demos/common.js"  ></script>
     -->
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
-        crossorigin="anonymous">
+        <link
+            rel="stylesheet"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+            integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+            crossorigin="anonymous"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
+            crossorigin="anonymous"
+        />
+    </head>
 
+    <body class="hv-100 wv-100 fv-bg-background p-5">
+        <div id="header" class="my-5"></div>
 
-</head>
+        <div
+            id="container"
+            class="p-3 m-2 d-flex flex-column align-items-center fv-bg-background-alt fv-text-primary"
+        >
+            <p class="fv-text-primary text-center">
+                A demo of tree view when children are accessed asynchroneously.
+                <br />
+                You can pick a folder on your computer to display its structure
+                in this page.<br />
+                An artificial delay of 200ms has been added to highlight a
+                loading time with a spinner.
+            </p>
+        </div>
 
-<body class="hv-100 wv-100 fv-bg-background p-5">
+        <script>
+            //------------------------
+            // The type of nodes
+            //------------------------
+            class Node extends ImmutableTree.Node {
+                static loading$ = new BehaviorSubject({})
 
-    <div id="header" class="my-5">
-    </div>
-
-    <div id="container" class="p-3 m-2 d-flex flex-column align-items-center fv-bg-background-alt fv-text-primary">
-        <p class='fv-text-primary text-center'>
-            A demo of tree view when children are accessed asynchroneously. <br>
-            You can pick a folder on your computer to display its structure in this page.<br>
-            An artificial delay of 200ms has been added to highlight a loading time with a spinner.
-        </p>
-
-    </div>
-
-    <script>
-        //------------------------
-        // The type of nodes
-        //------------------------
-        class Node extends ImmutableTree.Node {
-
-            static loading$ = new BehaviorSubject({})
-
-            constructor({ id, name, children, faClass }) {
-                super({ id, children })
-                this.name = name
-                // FontAwesome class for icon, usually I try to separate view concerns from here, it is a shortcut
-                this.faClass = faClass
+                constructor({ id, name, children, faClass }) {
+                    super({ id, children })
+                    this.name = name
+                    // FontAwesome class for icon, usually I try to separate view concerns from here, it is a shortcut
+                    this.faClass = faClass
+                }
             }
-        }
 
-        class DriveNode extends Node {
-            constructor({ id, name, children }) { super({ id, name, children, faClass: 'fa-hdd' }) }
-        }
-        class FolderNode extends Node {
-            constructor({ id, name, children }) { super({ id, name, children, faClass: 'fa-folder' }) }
-        }
-        class FileNode extends Node {
-            constructor({ id, name }) { super({ id, name, children: undefined, faClass: 'fa-file' }) }
-        }
-        let parse = (id, node) => {
+            class DriveNode extends Node {
+                constructor({ id, name, children }) {
+                    super({ id, name, children, faClass: 'fa-hdd' })
+                }
+            }
+            class FolderNode extends Node {
+                constructor({ id, name, children }) {
+                    super({ id, name, children, faClass: 'fa-folder' })
+                }
+            }
+            class FileNode extends Node {
+                constructor({ id, name }) {
+                    super({ id, name, children: undefined, faClass: 'fa-file' })
+                }
+            }
+            let parse = (id, node) => {
+                let factory = {
+                    drive: DriveNode,
+                    folder: FolderNode,
+                    file: FileNode,
+                }
+                let children =
+                    node.children &&
+                    Object.entries(node.children).map(([id, child]) => {
+                        return parse(id, child)
+                    })
+                return new factory[node.type]({ id, name: node.name, children })
+            }
 
-            let factory = { drive: DriveNode, folder: FolderNode, file: FileNode }
-            let children = node.children && Object.entries(node.children).map(([id, child]) => {
-                return parse(id, child)
+            //-------------------------------------------------------
+            // An example of async children using local file structure
+            //-------------------------------------------------------
+
+            let vDomBttn = new Button.View({
+                contentView: () => ({
+                    children: [
+                        { tag: 'i', class: 'fas fa-spider' },
+                        {
+                            tag: 'span',
+                            class: 'px-2',
+                            innerText: 'Pick local folder',
+                        },
+                        { tag: 'i', class: 'fas fa-ghost' },
+                    ],
+                }),
+                class: 'fv-btn fv-btn-secondary my-4',
             })
-            return new factory[node.type]({ id, name: node.name, children })
-        }
 
-        //-------------------------------------------------------
-        // An example of async children using local file structure
-        //-------------------------------------------------------
-
-        
-        let vDomBttn = new Button.View({
-            contentView: () => ({
-            children: [
-                { tag: 'i', class: 'fas fa-spider' },
-                { tag: 'span', class: 'px-2', innerText: 'Pick local folder' },
-                { tag: 'i', class: 'fas fa-ghost' },
-            ]
-            }),
-            class: 'fv-btn fv-btn-secondary my-4'
-        })
-
-        let getChildren$ = (drive, id) => {
-
-            return  of({drive,id}).pipe(
-                    operators.tap( ({id}) => Node.loading$.next({id, loading:true})),
-                    operators.mergeMap( ({drive,id}) => drive.listItems(id) ),
-                    operators.map(({files, folders}) => {
-                    return [
-                            ...folders.map(f =>new FolderNode({ id: f.id, name: f.name, children: getChildren$(drive, f.id) })),
-                            ...files.map(f => new FileNode({ id: f.id, name: f.name }))
+            let getChildren$ = (drive, id) => {
+                return of({ drive, id }).pipe(
+                    operators.tap(({ id }) =>
+                        Node.loading$.next({ id, loading: true }),
+                    ),
+                    operators.mergeMap(({ drive, id }) => drive.listItems(id)),
+                    operators.map(({ files, folders }) => {
+                        return [
+                            ...folders.map(
+                                (f) =>
+                                    new FolderNode({
+                                        id: f.id,
+                                        name: f.name,
+                                        children: getChildren$(drive, f.id),
+                                    }),
+                            ),
+                            ...files.map(
+                                (f) => new FileNode({ id: f.id, name: f.name }),
+                            ),
                         ]
                     }),
                     operators.delay(200),
-                    operators.tap( () => Node.loading$.next({id, loading:false}))
+                    operators.tap(() =>
+                        Node.loading$.next({ id, loading: false }),
+                    ),
                 )
-        }
+            }
 
-        let stateBrowser$ = vDomBttn.state.click$.pipe(
-            operators.mergeMap(() => from(window.showDirectoryPicker())),
-            operators.map(handle => new Drive(handle)),
-            operators.map((drive) =>
-                new ImmutableTree.State({
-                    rootNode: new DriveNode({ id: "", name: drive.name, children: getChildren$(drive, '') })
-                })
+            let stateBrowser$ = vDomBttn.state.click$.pipe(
+                operators.mergeMap(() => from(window.showDirectoryPicker())),
+                operators.map((handle) => new Drive(handle)),
+                operators.map(
+                    (drive) =>
+                        new ImmutableTree.State({
+                            rootNode: new DriveNode({
+                                id: '',
+                                name: drive.name,
+                                children: getChildren$(drive, ''),
+                            }),
+                        }),
+                ),
             )
-        )
-        
-        let headerView = (state, node) => ({
-            class: 'd-flex align-items-center',
-            children: [
-                // icon depending on node's type (drive, folder, or file)
-                { class: `px-2 fas ${node.faClass}` },
-                // text
-                { innerText: node.name, class: 'fv-pointer', style: { 'user-select': 'none' } },
-                // spinner when loading
-                { class: attr$(Node.loading$.pipe(operators.filter(({id}) => id == node.id)),
-                               ({loading}) => loading ? 'fas fa-spinner fa-spin' : '',
-                               { wrapper: (d) => "px-2 "+d} 
-                               )}
-            ]
-        })
-        let vDOM = {
-            children: [
-                vDomBttn,
-                child$(
-                    stateBrowser$,
-                    (state) => new ImmutableTree.View({ state, headerView })
-                )
-            ]
-        }
-        document.getElementById("container").appendChild(render(vDOM))
 
-        //-----------------------------------
-        // API (async) to get local folders structure
-        //-----------------------------------
-
-        class Drive {
-
-            constructor(rootFolderHandle) {
-                this.rootFolderHandle = rootFolderHandle
-                this.id = rootFolderHandle.name
-                this.name = rootFolderHandle.name
+            let headerView = (state, node) => ({
+                class: 'd-flex align-items-center',
+                children: [
+                    // icon depending on node's type (drive, folder, or file)
+                    { class: `px-2 fas ${node.faClass}` },
+                    // text
+                    {
+                        innerText: node.name,
+                        class: 'fv-pointer',
+                        style: { 'user-select': 'none' },
+                    },
+                    // spinner when loading
+                    {
+                        class: attr$(
+                            Node.loading$.pipe(
+                                operators.filter(({ id }) => id == node.id),
+                            ),
+                            ({ loading }) =>
+                                loading ? 'fas fa-spinner fa-spin' : '',
+                            { wrapper: (d) => 'px-2 ' + d },
+                        ),
+                    },
+                ],
+            })
+            let vDOM = {
+                children: [
+                    vDomBttn,
+                    child$(
+                        stateBrowser$,
+                        (state) =>
+                            new ImmutableTree.View({ state, headerView }),
+                    ),
+                ],
             }
+            document.getElementById('container').appendChild(render(vDOM))
 
-            listItems(folderId) {
+            //-----------------------------------
+            // API (async) to get local folders structure
+            //-----------------------------------
 
-                let getData = async (handle) => {
-                    let items = { folders: [], files: [] }
-                    for await (const item of handle.entries()) {
-                        let path = await this.rootFolderHandle.resolve(item[1])
-                        let d = {handle:item[1], id: path.join('/'), name:item[1].name, folderId, drive:this}
-                        item[1].kind == "directory" ? items.folders.push(d) : items.files.push(d)
-                    }
-                    return items
+            class Drive {
+                constructor(rootFolderHandle) {
+                    this.rootFolderHandle = rootFolderHandle
+                    this.id = rootFolderHandle.name
+                    this.name = rootFolderHandle.name
                 }
-                return this.getFileOrFolderHandle(folderId).pipe(
-                    operators.mergeMap((handle) => from(getData(handle)))
-                )
-            }
 
-            getFileOrFolderHandle(itemId) {
-                if (itemId == "" )
-                    return of(this.rootFolderHandle)
-
-                let getNext = async (folderHandle, remainingPath) => {
-
-                    let parts = remainingPath.split('/').filter(p => p != "")
-
-                    for await (const item of folderHandle.entries()) {
-                        if (item[1].name == parts[0] && parts.length > 1)
-                            return await getNext(item[1], parts.slice(1).join('/'))
-                        if (item[1].name == parts[0] && parts.length == 1)
-                            return item[1]
+                listItems(folderId) {
+                    let getData = async (handle) => {
+                        let items = { folders: [], files: [] }
+                        for await (const item of handle.entries()) {
+                            let path = await this.rootFolderHandle.resolve(
+                                item[1],
+                            )
+                            let d = {
+                                handle: item[1],
+                                id: path.join('/'),
+                                name: item[1].name,
+                                folderId,
+                                drive: this,
+                            }
+                            item[1].kind == 'directory'
+                                ? items.folders.push(d)
+                                : items.files.push(d)
+                        }
+                        return items
                     }
+                    return this.getFileOrFolderHandle(folderId).pipe(
+                        operators.mergeMap((handle) => from(getData(handle))),
+                    )
                 }
-                return from(getNext(this.rootFolderHandle, itemId))
+
+                getFileOrFolderHandle(itemId) {
+                    if (itemId == '') return of(this.rootFolderHandle)
+
+                    let getNext = async (folderHandle, remainingPath) => {
+                        let parts = remainingPath
+                            .split('/')
+                            .filter((p) => p != '')
+
+                        for await (const item of folderHandle.entries()) {
+                            if (item[1].name == parts[0] && parts.length > 1)
+                                return await getNext(
+                                    item[1],
+                                    parts.slice(1).join('/'),
+                                )
+                            if (item[1].name == parts[0] && parts.length == 1)
+                                return item[1]
+                        }
+                    }
+                    return from(getNext(this.rootFolderHandle, itemId))
+                }
             }
-        }
-        
-        //---------------------------
-        // Option to select the theme, see ../common.js
-        //---------------------------
 
-        document.getElementById('header').appendChild(render(vDomThemes))
-    </script>
-</body>
+            //---------------------------
+            // Option to select the theme, see ../common.js
+            //---------------------------
 
+            document.getElementById('header').appendChild(render(vDomThemes))
+        </script>
+    </body>
 </html>
