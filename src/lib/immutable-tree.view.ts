@@ -794,14 +794,14 @@ export namespace ImmutableTree {
 
     //-------------------------------------------------------------------------
     //-------------------------------------------------------------------------
-    type TOptions = {
+    export type TOptions = {
         classes?: {
             header?: string
             headerSelected?: string
         }
         stepPadding?: number
     }
-    type THeaderView<NodeType extends Node> = (
+    export type THeaderView<NodeType extends Node> = (
         state: State<NodeType>,
         node: NodeType,
         root: NodeType,
