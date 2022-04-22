@@ -252,7 +252,10 @@ export namespace ImmutableTree {
 
     export class State<NodeType extends Node> {
         public readonly root$ = new ReplaySubject<NodeType>(1)
-        public readonly children$ = new Map<Node, ReplaySubject<Array<Node>>>()
+        public readonly children$ = new Map<
+            NodeType,
+            ReplaySubject<Array<NodeType>>
+        >()
         public readonly directUpdates$ = new ReplaySubject<
             Array<Updates<NodeType>>
         >()
