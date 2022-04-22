@@ -807,6 +807,13 @@ export namespace ImmutableTree {
         root: NodeType,
     ) => VirtualDOM
 
+    export type TDropAreaView<NodeType extends Node> = (
+        state: State<NodeType>,
+        parent: NodeType,
+        children: NodeType[],
+        insertIndex: number,
+    ) => VirtualDOM
+
     export class View<NodeType extends Node> implements VirtualDOM {
         static options: TOptions = {
             classes: {
@@ -829,6 +836,7 @@ export namespace ImmutableTree {
         private readonly subscriptions = new Array<Subscription>()
 
         private readonly headerView: THeaderView<NodeType>
+        private readonly dropAreaView: TDropAreaView<NodeType>
         private readonly options: TOptions
 
         connectedCallback = (elem) => {
@@ -838,11 +846,13 @@ export namespace ImmutableTree {
         constructor({
             state,
             headerView,
+            dropAreaView,
             options,
             ...rest
         }: {
             state: State<NodeType>
             headerView: THeaderView<NodeType>
+            dropAreaView?: TDropAreaView<NodeType>
             options?: TOptions
             [_k: string]: unknown
         }) {
@@ -851,6 +861,7 @@ export namespace ImmutableTree {
 
             this.state = state
             this.headerView = headerView
+            this.dropAreaView = dropAreaView
 
             const content$ = child$(this.state.root$, (root) => {
                 const rootView = this.nodeView(root, root, 0)
@@ -1011,10 +1022,25 @@ export namespace ImmutableTree {
                 class: attr$(nodeExpanded$, (expanded) =>
                     expanded ? 'd-block' : 'd-none',
                 ),
-                children: children.map(
-                    (child) =>
-                        this.nodeView(root, child as NodeType, depth + 1), // XXX : Conception problem type hierarchy
-                ),
+                children: children
+                    .map((child, i) => {
+                        let dropView = (insertIndex) =>
+                            this.dropAreaView &&
+                            this.dropAreaView(
+                                this.state,
+                                node,
+                                children,
+                                insertIndex,
+                            )
+                        return [
+                            dropView(i),
+                            this.nodeView(root, child, depth + 1),
+                            i == children.length - 1 &&
+                                dropView(children.length),
+                        ]
+                    })
+                    .flat()
+                    .filter((d) => d != undefined),
             }))
         }
     }
