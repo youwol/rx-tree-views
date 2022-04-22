@@ -115,6 +115,32 @@ export namespace ImmutableTree {
         }
     }
 
+    export class InsertChildCommand<NodeType extends Node>
+        implements Command<NodeType>
+    {
+        constructor(
+            public readonly destination: {
+                parent: NodeType
+                insertIndex?: number
+            },
+            public readonly childNode: NodeType,
+            public readonly metadata: any = undefined,
+        ) {}
+
+        execute(
+            tree: State<NodeType>,
+            emitUpdate = true,
+            updatePropagationFct = (_old) => ({}),
+        ) {
+            return tree.insertChild(
+                this.destination,
+                this.childNode,
+                emitUpdate,
+                updatePropagationFct,
+            )
+        }
+    }
+
     export class RemoveNodeCommand<NodeType extends Node>
         implements Command<NodeType>
     {
@@ -351,8 +377,65 @@ export namespace ImmutableTree {
             updatePropagationFct = (_old) => ({}),
             cmdMetadata = undefined,
         ) {
+            const { parentNode } = this.insertChildBase(
+                { parent },
+                childNode,
+                updatePropagationFct,
+            )
+            const update = new Updates(
+                [],
+                [childNode],
+                this.root,
+                new AddChildCommand(parentNode, childNode, cmdMetadata),
+            )
+            this.tmpUpdates.push(update)
+
+            emitUpdate && this.emitUpdate()
+
+            return { root: this.root, update }
+        }
+
+        insertChild(
+            destination: { parent: string | NodeType; insertIndex?: number },
+            childNode: NodeType,
+            emitUpdate = true,
+            updatePropagationFct = (_old) => ({}),
+            cmdMetadata = undefined,
+        ) {
+            const { parentNode } = this.insertChildBase(
+                destination,
+                childNode,
+                updatePropagationFct,
+            )
+            const update = new Updates(
+                [],
+                [childNode],
+                this.root,
+                new InsertChildCommand(
+                    {
+                        parent: parentNode,
+                        insertIndex: destination.insertIndex,
+                    },
+                    childNode,
+                    cmdMetadata,
+                ),
+            )
+            this.tmpUpdates.push(update)
+
+            emitUpdate && this.emitUpdate()
+
+            return { root: this.root, update }
+        }
+
+        private insertChildBase(
+            destination: { parent: string | NodeType; insertIndex?: number },
+            childNode: NodeType,
+            updatePropagationFct,
+        ) {
             const parentNode =
-                parent instanceof Node ? parent : this.getNode(parent)
+                destination.parent instanceof Node
+                    ? destination.parent
+                    : this.getNode(destination.parent)
 
             if (!parentNode)
                 throw Error('Can not find the parent to add the child')
@@ -369,32 +452,24 @@ export namespace ImmutableTree {
                 ...childNode,
                 ...updatePropagationFct(childNode),
             }) as NodeType
+            const newChildren = [...parentNode.children]
+            const index = destination.insertIndex ?? parentNode.children.length
+            newChildren.splice(index, 0, newChild)
+
             const newParent = new parentNode.factory({
                 ...parentNode,
-                ...{ children: parentNode.children.concat(newChild) },
+                ...{ children: newChildren },
                 ...updatePropagationFct(parentNode),
             })
-
             newParent.children.forEach((child) =>
                 this.setParentRec(child, newParent),
             )
-
             this.root = this.cloneTreeAndReplacedChild(
                 parentNode,
                 newParent,
                 updatePropagationFct,
             )
-            const update = new Updates(
-                [],
-                [childNode],
-                this.root,
-                new AddChildCommand(parentNode, childNode, cmdMetadata),
-            )
-            this.tmpUpdates.push(update)
-
-            emitUpdate && this.emitUpdate()
-
-            return { root: this.root, update }
+            return { parentNode }
         }
 
         removeNode(
@@ -403,6 +478,22 @@ export namespace ImmutableTree {
             _updatePropagationFct = (_old) => ({}),
             cmdMetadata: any = undefined,
         ) {
+            const { newParent, node } = this.removeNodeBase(target)
+
+            const update = new Updates(
+                [node],
+                [],
+                this.root,
+                new RemoveNodeCommand(newParent, node, cmdMetadata),
+            )
+            this.tmpUpdates.push(update)
+
+            emitUpdate && this.emitUpdate()
+
+            return { root: this.root, update }
+        }
+
+        private removeNodeBase(target: string | NodeType) {
             const node = target instanceof Node ? target : this.getNode(target)
 
             if (!node) throw Error('Can not find the node to remove')
@@ -417,7 +508,7 @@ export namespace ImmutableTree {
                 parentNode.children instanceof Observable
             )
                 throw Error(
-                    'You can not add a child to a node not already resolved',
+                    'You can not remove a child from a node not already resolved',
                 )
 
             const newParent = new parentNode.factory({
@@ -442,18 +533,7 @@ export namespace ImmutableTree {
                 newParent,
                 (_old) => ({}),
             )
-
-            const update = new Updates(
-                [node],
-                [],
-                this.root,
-                new RemoveNodeCommand(newParent, node, cmdMetadata),
-            )
-            this.tmpUpdates.push(update)
-
-            emitUpdate && this.emitUpdate()
-
-            return { root: this.root, update }
+            return { newParent, node }
         }
 
         replaceNode(
