@@ -186,6 +186,32 @@ export namespace ImmutableTree {
         }
     }
 
+    export class MoveNodeCommand<NodeType extends Node>
+        implements Command<NodeType>
+    {
+        constructor(
+            public readonly movedNode: NodeType,
+            public readonly destination: {
+                reference: NodeType
+                direction?: 'above' | 'below'
+            },
+            public readonly metadata: any = undefined,
+        ) {}
+
+        execute(
+            tree: State<NodeType>,
+            emitUpdate = true,
+            updatePropagationFct = (_old) => ({}),
+        ) {
+            return tree.moveNode(
+                this.movedNode.id,
+                this.destination,
+                emitUpdate,
+                updatePropagationFct,
+            )
+        }
+    }
+
     export class ReplaceAttributesCommand<NodeType extends Node>
         implements Command<NodeType>
     {
@@ -563,6 +589,79 @@ export namespace ImmutableTree {
                 [newNode],
                 this.root,
                 new ReplaceNodeCommand(oldNode, newNode, cmdMetadata),
+            )
+            this.tmpUpdates.push(update)
+
+            emitUpdate && this.emitUpdate()
+
+            return { root: this.root, update }
+        }
+
+        /**
+         * @param target the node to move
+         * @param destination
+         * @param destination.reference a node used as reference
+         * @param destination.direction
+         *   * if 'above': put the node above the reference
+         *   * if 'below'; put the node below the reference
+         *   * if 'none': add the node as child of reference
+         * @param emitUpdate whether or not to notify the update
+         * @param updatePropagationFct a function that is called to append properties on node
+         * @param cmdMetadata metadata to add to the command
+         * */
+        moveNode(
+            target: string | NodeType,
+            destination: {
+                reference: string | NodeType
+                direction?: 'above' | 'below'
+            },
+            emitUpdate = true,
+            updatePropagationFct = (_old) => ({}),
+            cmdMetadata: any = undefined,
+        ) {
+            const movedNode =
+                target instanceof Node ? target : this.getNode(target)
+
+            this.removeNodeBase(movedNode)
+            const reference =
+                destination.reference instanceof Node
+                    ? destination.reference
+                    : this.getNode(destination.reference)
+
+            let parentNode = destination.direction
+                ? this.getParent(reference.id)
+                : reference
+
+            if (!destination.direction) {
+                this.insertChildBase(
+                    { parent: parentNode },
+                    movedNode,
+                    updatePropagationFct,
+                )
+            } else {
+                const resolvedChildren = parentNode.resolvedChildren()
+                const insertIndex =
+                    resolvedChildren.indexOf(reference) +
+                    (destination.reference == 'above' ? -1 : 0)
+                this.insertChildBase(
+                    { parent: parentNode, insertIndex },
+                    movedNode,
+                    updatePropagationFct,
+                )
+            }
+
+            const update = new Updates(
+                [movedNode],
+                [this.getNode(movedNode.id)],
+                this.root,
+                new MoveNodeCommand(
+                    movedNode,
+                    {
+                        reference: this.getNode(reference.id),
+                        direction: destination.direction,
+                    },
+                    cmdMetadata,
+                ),
             )
             this.tmpUpdates.push(update)
 
