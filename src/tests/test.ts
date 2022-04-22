@@ -341,89 +341,143 @@ test('commands', (done) => {
     const state = new ImmutableTree.State<Node>({ rootNode: drive })
     new ImmutableTree.InitCommand({}).execute(state)
 
-    const addCmd = new ImmutableTree.AddChildCommand(
-        drive,
-        new FolderNode({ id: 'folderA', name: 'FolderA', children: children$ }),
-    )
-    addCmd.execute(state)
-
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const folderA = ImmutableTree.find(root, (n) => n.id == 'folderA')
-        expect(folderA.id).toEqual('folderA')
-        const cmd = new ImmutableTree.ReplaceAttributesCommand(folderA, {
-            name: 'FolderA-bis',
-        })
-        cmd.execute(state)
-    })
-
     const uuid = uuidv4()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const folderA = ImmutableTree.find(root, (n) => n.id == 'folderA')
-        expect(folderA.name).toEqual('FolderA-bis')
-        const cmd = new ImmutableTree.ReplaceNodeCommand(
-            folderA,
-            new FileNode({ id: uuid, name: 'file' }),
-        )
-        cmd.execute(state)
+    const uuidInserted = uuidv4()
+    const commands = [
+        {
+            id: 'add-child',
+            command: () => {
+                return new ImmutableTree.AddChildCommand(
+                    drive,
+                    new FolderNode({
+                        id: 'folderA',
+                        name: 'FolderA',
+                        children: children$,
+                    }),
+                )
+            },
+            thenExpect: (root) => {
+                const folderA = ImmutableTree.find(
+                    root,
+                    (n) => n.id == 'folderA',
+                )
+                expect(folderA.id).toEqual('folderA')
+            },
+        },
+        {
+            id: 'replace-attributes',
+            command: (root) => {
+                const folderA = ImmutableTree.find(
+                    root,
+                    (n) => n.id == 'folderA',
+                )
+                return new ImmutableTree.ReplaceAttributesCommand(folderA, {
+                    name: 'FolderA-bis',
+                })
+            },
+            thenExpect: (root) => {
+                const folderA = ImmutableTree.find(
+                    root,
+                    (n) => n.id == 'folderA',
+                )
+                expect(folderA.name).toEqual('FolderA-bis')
+            },
+        },
+        {
+            id: 'replace-node',
+            command: (root) => {
+                const folderA = ImmutableTree.find(
+                    root,
+                    (n) => n.id == 'folderA',
+                )
+                return new ImmutableTree.ReplaceNodeCommand(
+                    folderA,
+                    new FileNode({ id: uuid, name: 'file' }),
+                )
+            },
+            thenExpect: (root) => {
+                const file = ImmutableTree.find(root, (n) => n.id == uuid)
+                expect(file.name).toEqual('file')
+            },
+        },
+        {
+            id: 'insert-child',
+            command: (root) => {
+                const drive = ImmutableTree.find(root, (n) => n.id == 'drive')
+                return new ImmutableTree.InsertChildCommand(
+                    { parent: drive, insertIndex: 0 },
+                    new FileNode({ id: uuidInserted, name: 'inserted' }),
+                )
+            },
+            thenExpect: (root) => {
+                const rootChildren = root.resolvedChildren()
+                expect(rootChildren.length).toEqual(2)
+                expect(rootChildren[0].id).toEqual(uuidInserted)
+                expect(rootChildren[1].id).toEqual(uuid)
+            },
+        },
+        {
+            id: 'move-child',
+            command: (root) => {
+                const drive = ImmutableTree.find(root, (n) => n.id == 'drive')
+                const inserted = ImmutableTree.find(
+                    root,
+                    (n) => n.id == uuidInserted,
+                )
+                return new ImmutableTree.MoveNodeCommand(inserted, {
+                    reference: drive,
+                })
+            },
+            thenExpect: (root) => {
+                const rootChildren = root.resolvedChildren()
+                expect(rootChildren.length).toEqual(2)
+                expect(rootChildren[0].id).toEqual(uuid)
+                expect(rootChildren[1].id).toEqual(uuidInserted)
+            },
+        },
+        {
+            id: 'remove-node',
+            command: (root) => {
+                const file = ImmutableTree.find(root, (n) => n.id == uuid)
+                return new ImmutableTree.RemoveNodeCommand(
+                    file,
+                    new FileNode({ id: uuid, name: 'file' }),
+                )
+            },
+            thenExpect: (root) => {
+                const rootChildren = root.resolvedChildren()
+                expect(rootChildren.length).toEqual(1)
+                expect(rootChildren[0].id).toEqual(uuidInserted)
+            },
+        },
+    ]
+    commands.forEach(({ command, thenExpect }) => {
+        state.root$.pipe(take(1)).subscribe((root) => {
+            command(root).execute(state)
+        })
+        state.root$.pipe(take(1)).subscribe((root) => {
+            thenExpect(root)
+        })
     })
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const file = ImmutableTree.find(root, (n) => n.id == uuid)
-        expect(file.name).toEqual('file')
-        const cmd = new ImmutableTree.RemoveNodeCommand(
-            file,
-            new FileNode({ id: uuid, name: 'file' }),
-        )
-        cmd.execute(state)
-    })
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const drive = ImmutableTree.find(root, (n) => n.id == 'drive')
-        expect(drive.children.length).toEqual(0)
-    })
-    state.undo()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const file = ImmutableTree.find(root, (n) => n.id == uuid)
-        expect(file.name).toEqual('file')
-    })
-    state.undo()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const folderA = ImmutableTree.find(root, (n) => n.id == 'folderA')
-        expect(folderA.name).toEqual('FolderA-bis')
-    })
-    state.undo()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const folderA = ImmutableTree.find(root, (n) => n.id == 'folderA')
-        expect(folderA.id).toEqual('folderA')
-    })
-    state.undo()
+    expect(state['historic']).toHaveLength(7)
+    commands
+        .slice(0, 6)
+        .reverse()
+        .forEach(({ thenExpect }) => {
+            state.undo()
+            state.root$.pipe(take(1)).subscribe((root) => {
+                thenExpect(root)
+            })
+        })
     state.root$.pipe(take(1)).subscribe((root) => {
         expect(root.children).toEqual([])
     })
-    state.undo()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        expect(root.children).toEqual([])
+    commands.forEach(({ thenExpect }) => {
+        state.redo()
+        state.root$.pipe(take(1)).subscribe((root) => {
+            thenExpect(root)
+        })
     })
-
-    state.redo()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const folderA = ImmutableTree.find(root, (n) => n.id == 'folderA')
-        expect(folderA.id).toEqual('folderA')
-    })
-    state.redo()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const folderA = ImmutableTree.find(root, (n) => n.id == 'folderA')
-        expect(folderA.name).toEqual('FolderA-bis')
-    })
-    state.redo()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const file = ImmutableTree.find(root, (n) => n.id == uuid)
-        expect(file.name).toEqual('file')
-    })
-    state.redo()
-    state.root$.pipe(take(1)).subscribe((root) => {
-        const drive = ImmutableTree.find(root, (n) => n.id == 'drive')
-        expect(drive.children.length).toEqual(0)
-    })
-    state.redo()
     done()
 })
 
