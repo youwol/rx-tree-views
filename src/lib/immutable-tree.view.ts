@@ -960,12 +960,14 @@ export namespace ImmutableTree {
                     return expanded // expanded ? this.state.getChildren(node) : {}
                 }),
             )
+            const rowView = this.rowView(root, node, nodeExpanded$, depth)
+            if (rowView == undefined) return undefined
 
             return {
                 id: 'node-' + node.id,
                 style: { position: 'relative' },
                 children: [
-                    this.rowView(root, node, nodeExpanded$, depth),
+                    rowView,
                     this.expandedContent$(root, node, nodeExpanded$, depth),
                     this.arianeLine(depth, isLeaf),
                 ],
@@ -980,6 +982,7 @@ export namespace ImmutableTree {
         ) {
             const space = this.leftSpacing(depth)
             const itemHeader = this.headerView(this.state, node, root)
+            if (itemHeader == undefined) return undefined
 
             const class$ = attr$(
                 this.state.selectedNode$,
@@ -1072,30 +1075,42 @@ export namespace ImmutableTree {
                 filter((d) => d != undefined),
                 distinct(),
             )
-            return child$(children$, (children) => ({
-                class: attr$(nodeExpanded$, (expanded) =>
-                    expanded ? 'd-block' : 'd-none',
-                ),
-                children: children
-                    .map((child, i) => {
-                        let dropView = (insertIndex) =>
-                            this.dropAreaView &&
-                            this.dropAreaView(
-                                this.state,
-                                node,
-                                children,
-                                insertIndex,
-                            )
-                        return [
-                            dropView(i),
-                            this.nodeView(root, child, depth + 1),
-                            i == children.length - 1 &&
-                                dropView(children.length),
-                        ]
+            return child$(children$, (children) => {
+                const filteredViews = children
+                    .map((child) => {
+                        return {
+                            child,
+                            view: this.nodeView(root, child, depth + 1),
+                        }
                     })
-                    .flat()
-                    .filter((d) => d != undefined),
-            }))
+                    .filter(({ view }) => view != undefined)
+                const filteredChildren = filteredViews.map(({ child }) => child)
+
+                return {
+                    class: attr$(nodeExpanded$, (expanded) =>
+                        expanded ? 'd-block' : 'd-none',
+                    ),
+                    children: filteredViews
+                        .map(({ view }, i) => {
+                            let dropView = (insertIndex) =>
+                                this.dropAreaView &&
+                                this.dropAreaView(
+                                    this.state,
+                                    node,
+                                    filteredChildren,
+                                    insertIndex,
+                                )
+                            return [
+                                dropView(i),
+                                view,
+                                i == children.length - 1 &&
+                                    dropView(children.length),
+                            ]
+                        })
+                        .flat()
+                        .filter((d) => d != undefined),
+                }
+            })
         }
     }
 }
