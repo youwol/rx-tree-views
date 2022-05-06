@@ -52,6 +52,7 @@ export namespace ImmutableTree {
                     mutableThis.children = children
                 }),
                 map((children) => children),
+                shareReplay({ bufferSize: 1, refCount: true }),
             )
         }
     }
