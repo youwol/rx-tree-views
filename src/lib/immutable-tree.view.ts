@@ -932,23 +932,17 @@ export namespace ImmutableTree {
 
         private onConnectedCallbackRoot(elem) {
             elem.subscriptions.push(
-                this.toggledNode$
-                    .pipe(
-                        scan(
-                            (acc, nodeId) =>
-                                acc.includes(nodeId)
-                                    ? acc.filter((id) => id != nodeId)
-                                    : acc.concat([nodeId]),
-                            [],
-                        ),
-                    )
-                    .subscribe((nodeIds) =>
-                        this.state.expandedNodes$.next(nodeIds),
-                    ),
+                this.toggledNode$.subscribe((nodeId) => {
+                    const actualValues = this.state.expandedNodes$.getValue()
+                    if (actualValues.includes(nodeId)) {
+                        this.state.expandedNodes$.next(
+                            actualValues.filter((n) => n != nodeId),
+                        )
+                        return
+                    }
+                    this.state.expandedNodes$.next([...actualValues, nodeId])
+                }),
             )
-            this.state.expandedNodes$
-                .getValue()
-                .forEach((nodeId) => this.toggledNode$.next(nodeId))
         }
 
         protected nodeView(
