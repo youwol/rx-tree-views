@@ -953,9 +953,12 @@ export namespace ImmutableTree {
             const isLeaf = node.children == undefined
             const nodeExpanded$ = this.state.expandedNodes$.pipe(
                 map((expandedNodes) => expandedNodes.indexOf(node.id) > -1),
-                tap((expanded) =>
-                    expanded ? this.state.getChildren(node) : {},
-                ),
+                tap((expanded) => {
+                    if (expanded) {
+                        this.state.getChildren(node)
+                    }
+                    return expanded // expanded ? this.state.getChildren(node) : {}
+                }),
             )
 
             return {
