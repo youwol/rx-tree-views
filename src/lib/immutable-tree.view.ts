@@ -991,8 +991,8 @@ export namespace ImmutableTree {
                         ? this.options.classes.headerSelected
                         : '',
                 {
-                    wrapper: (d) => this.options.classes.header + ' ' + d,
-                    untilFirst: this.options.classes.header,
+                    wrapper: (d) => this.headerClassesFct(node) + ' ' + d,
+                    untilFirst: this.headerClassesFct(node),
                 },
             )
 
