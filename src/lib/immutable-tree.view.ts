@@ -7,7 +7,15 @@ import {
     Subject,
     Subscription,
 } from 'rxjs'
-import { distinct, filter, map, scan, take, tap } from 'rxjs/operators'
+import {
+    distinct,
+    filter,
+    map,
+    mergeMap,
+    shareReplay,
+    take,
+    tap,
+} from 'rxjs/operators'
 
 export namespace ImmutableTree {
     /*
@@ -718,6 +726,45 @@ export namespace ImmutableTree {
             this.root$.next(this.root)
             this.directUpdates$.next(this.tmpUpdates)
             this.tmpUpdates = []
+        }
+
+        resolvePath(path: string[]): Observable<NodeType[]> {
+            let resolveChildrenRec = () => {
+                return (
+                    source$: Observable<{
+                        index: number
+                        nodesResolved: NodeType[]
+                    }>,
+                ) => {
+                    return source$.pipe(
+                        take(1),
+                        mergeMap(({ index, nodesResolved }) => {
+                            if (index == path.length) {
+                                return of(nodesResolved)
+                            }
+                            const node = this.getNode(path[index])
+                            this.getChildren(node)
+                            return this.getChildren$(node).pipe(
+                                take(1),
+                                map(() => {
+                                    return {
+                                        index: index + 1,
+                                        nodesResolved: [...nodesResolved, node],
+                                    }
+                                }),
+                                resolveChildrenRec(),
+                            )
+                        }),
+                    )
+                }
+            }
+            const indexUnresolved = path.findIndex(
+                (childId) => this.getNode(childId) == undefined,
+            )
+            return of({
+                index: Math.max(0, indexUnresolved - 1),
+                nodesResolved: [],
+            }).pipe(resolveChildrenRec())
         }
 
         private cloneTreeAndReplacedChild(
