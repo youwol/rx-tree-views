@@ -848,7 +848,7 @@ export namespace ImmutableTree {
     //-------------------------------------------------------------------------
     export type TOptions = {
         classes?: {
-            header?: string
+            header?: string | ((Node) => string)
             headerSelected?: string
         }
         stepPadding?: number
@@ -867,9 +867,9 @@ export namespace ImmutableTree {
     ) => VirtualDOM
 
     export class View<NodeType extends Node> implements VirtualDOM {
-        static options: TOptions = {
+        static staticOptions: TOptions = {
             classes: {
-                header: 'd-flex align-items-baseline fv-tree-header ',
+                header: () => 'd-flex align-items-baseline fv-tree-header ',
                 headerSelected: 'fv-tree-selected fv-text-focus',
             },
             stepPadding: 15,
@@ -890,6 +890,7 @@ export namespace ImmutableTree {
         private readonly headerView: THeaderView<NodeType>
         private readonly dropAreaView: TDropAreaView<NodeType>
         private readonly options: TOptions
+        private readonly headerClassesFct: (n: NodeType) => string
 
         connectedCallback = (elem) => {
             elem.subscriptions = elem.subscriptions.concat(this.subscriptions)
@@ -909,7 +910,11 @@ export namespace ImmutableTree {
             [_k: string]: unknown
         }) {
             Object.assign(this, rest)
-            this.options = Object.assign(View.options, options)
+            this.options = Object.assign(View.staticOptions, options)
+            this.headerClassesFct =
+                typeof this.options.classes.header == 'string'
+                    ? () => this.options.classes.header as string
+                    : this.options.classes.header
 
             this.state = state
             this.headerView = headerView
