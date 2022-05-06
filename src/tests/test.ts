@@ -5,13 +5,17 @@ import { create, SnapshotPlugin } from 'rxjs-spy'
 import * as Match from 'rxjs-spy/cjs/match'
 import { tag } from 'rxjs-spy/cjs/operators'
 
-import { filter, take } from 'rxjs/operators'
+import { filter, mergeMap, take, tap } from 'rxjs/operators'
 import { v4 as uuidv4 } from 'uuid'
 import { ImmutableTree } from '../index'
 
 const spy = create()
 // There is a lot of warning about cyclic dependencies...apparently it's still fine
 console.warn = (..._) => {}
+beforeEach(() => {
+    spy.flush()
+    document.body.innerHTML = ''
+})
 
 function getOpenSubscriptions() {
     const snapshotPlugin = spy.find(SnapshotPlugin)
@@ -80,7 +84,6 @@ const parse = (id, node) => {
 }
 
 test('subscriptions are closed', (done) => {
-    spy.flush()
     const data = {
         name: 'Drive',
         type: 'drive',
@@ -273,7 +276,6 @@ test('subscriptions are closed', (done) => {
 })
 
 test('async rendering', (done) => {
-    spy.flush()
     const children$ = new Subject<Array<Node>>()
     const drive = new DriveNode({
         id: 'drive',
@@ -330,7 +332,6 @@ test('async rendering', (done) => {
 })
 
 test('commands', (done) => {
-    spy.flush()
     const children$ = new Subject<Array<Node>>()
     const drive = new DriveNode({
         id: 'drive',
@@ -451,7 +452,8 @@ test('commands', (done) => {
             },
         },
     ]
-    commands.forEach(({ command, thenExpect }) => {
+    const selectedCommands = [...commands]
+    selectedCommands.forEach(({ command, thenExpect }) => {
         state.root$.pipe(take(1)).subscribe((root) => {
             command(root).execute(state)
         })
@@ -459,31 +461,212 @@ test('commands', (done) => {
             thenExpect(root)
         })
     })
-    expect(state['historic']).toHaveLength(7)
-    commands
-        .slice(0, 6)
-        .reverse()
-        .forEach(({ thenExpect }) => {
-            state.undo()
+    expect(state['historic']).toHaveLength(selectedCommands.length + 1)
+    let previousCommand = undefined
+    selectedCommands.reverse().forEach((command) => {
+        if (previousCommand) {
             state.root$.pipe(take(1)).subscribe((root) => {
-                thenExpect(root)
+                command.thenExpect(root)
             })
-        })
+        }
+        state.undo()
+        previousCommand = command
+    })
     state.root$.pipe(take(1)).subscribe((root) => {
         expect(root.children).toEqual([])
     })
-    commands.forEach(({ thenExpect }) => {
+    selectedCommands.reverse().forEach(({ thenExpect }, index) => {
         state.redo()
         state.root$.pipe(take(1)).subscribe((root) => {
             thenExpect(root)
+            if (index == selectedCommands.length - 1) {
+                done()
+            }
         })
     })
-    done()
+})
+
+test('modifying node on resolved parent', (done) => {
+    const children$ = new BehaviorSubject<Array<Node>>([])
+    const drive = new DriveNode({
+        id: 'drive',
+        name: 'drive',
+        children: [
+            new FolderNode({
+                id: 'folderA',
+                name: 'FolderA',
+                children: children$,
+            }),
+        ],
+    })
+    const headerView = (state, node) => {
+        return { id: `header-${node.id}`, innerText: node.name }
+    }
+    const state = new ImmutableTree.State<Node>({
+        rootNode: drive,
+        expandedNodes: ['drive'],
+    })
+    new ImmutableTree.InitCommand({}).execute(state)
+
+    const view = new ImmutableTree.View<Node>({
+        state,
+        headerView,
+        id: 'tree-view',
+        disconnectedCallback: () => state.unsubscribe(),
+    })
+
+    const div = render(view)
+    document.body.appendChild(div)
+    const rootView = document.getElementById('tree-view')
+    expect(rootView).toBeTruthy()
+    const folderAView = rootView.querySelector('#header-folderA')
+    expect(folderAView).toBeTruthy()
+
+    const folderANode = state.getNode('folderA')
+    expect(folderANode).toBeTruthy()
+
+    folderAView.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+    const children2$ = new Subject<Array<Node>>()
+    const commands = [
+        {
+            id: 'add-child',
+            command: (_root) => {
+                return new ImmutableTree.AddChildCommand(
+                    folderANode,
+                    new FolderNode({
+                        id: 'folderA1',
+                        name: 'FolderA1',
+                        children: children$,
+                    }),
+                )
+            },
+            thenExpect: (root) => {
+                const folderA1 = ImmutableTree.find(
+                    root,
+                    (n) => n.id == 'folderA1',
+                )
+                expect(folderA1).toBeTruthy()
+                const folderA1View = rootView.querySelector('#header-folderA1')
+                expect(folderA1View).toBeTruthy()
+            },
+        },
+        {
+            id: 'replace-child',
+            command: (_root) => {
+                return new ImmutableTree.ReplaceNodeCommand(
+                    folderANode,
+                    new FolderNode({
+                        ...folderANode,
+                        name: 'folderA bis',
+                        children: children2$,
+                    } as any),
+                )
+            },
+            thenExpect: (root) => {
+                const folderReplaced = ImmutableTree.find(
+                    root,
+                    (n) => n.id == 'folderA',
+                )
+                children2$.next([])
+                expect(folderReplaced).toBeTruthy()
+                const folderReplacedView =
+                    rootView.querySelector('#header-folderA')
+                expect(folderReplacedView).toBeTruthy()
+                expect(folderReplaced.children).toEqual([])
+                //expect(true).toBeFalsy()
+            },
+        },
+    ]
+    commands.forEach(({ command, thenExpect }, index) => {
+        state.root$.pipe(take(1)).subscribe((root) => {
+            command(root).execute(state)
+        })
+        state.root$.pipe(take(1)).subscribe((root) => {
+            thenExpect(root)
+            if (index == commands.length - 1) {
+                done()
+            }
+        })
+    })
+})
+
+test('resolve path', (done) => {
+    const childrenFolderB$ = new ReplaySubject<Array<Node>>()
+
+    const drive = new DriveNode({
+        id: 'drive',
+        name: 'drive',
+        children: [
+            new FolderNode({
+                id: 'folderA',
+                name: 'FolderA',
+                children: new BehaviorSubject<Array<Node>>([
+                    new FolderNode({
+                        id: 'folderB',
+                        name: 'FolderB',
+                        children: childrenFolderB$,
+                    }),
+                ]),
+            }),
+        ],
+    })
+    const headerView = (state, node) => {
+        return { id: `header-${node.id}`, innerText: node.name }
+    }
+    const state = new ImmutableTree.State<Node>({
+        rootNode: drive,
+    })
+    new ImmutableTree.InitCommand({}).execute(state)
+
+    const view = new ImmutableTree.View<Node>({
+        state,
+        headerView,
+        id: 'tree-view',
+        disconnectedCallback: () => state.unsubscribe(),
+    })
+
+    const div = render(view)
+    document.body.appendChild(div)
+    const rootView = document.getElementById('tree-view')
+    expect(rootView).toBeTruthy()
+    let folderAView = rootView.querySelector('#header-folderA')
+    expect(folderAView).toBeFalsy()
+
+    let folderBView = rootView.querySelector('#header-folderB')
+    expect(folderBView).toBeFalsy()
+    childrenFolderB$.next([
+        new FolderNode({
+            id: 'folderC',
+            name: 'FolderC',
+            children: childrenFolderB$,
+        }),
+    ])
+    state
+        .resolvePath(['drive', 'folderA', 'folderB'])
+        .pipe(
+            mergeMap(() => state.root$),
+            tap((root) => {
+                expect(root.children[0].children[0].children[0].id).toBe(
+                    'folderC',
+                )
+            }),
+        )
+        .subscribe(() => {
+            state.expandedNodes$.next(['drive', 'folderA', 'folderB'])
+            let folderAView = rootView.querySelector('#header-folderA')
+            expect(folderAView).toBeTruthy()
+
+            let folderBView = rootView.querySelector('#header-folderB')
+            expect(folderBView).toBeTruthy()
+
+            let folderCView = rootView.querySelector('#header-folderC')
+            expect(folderCView).toBeTruthy()
+            done()
+        })
 })
 
 test('errors', () => {
-    spy.flush()
-
     const drive = new DriveNode({
         id: 'drive',
         name: 'drive',
