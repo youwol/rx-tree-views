@@ -482,7 +482,11 @@ export namespace ImmutableTree {
                 ...childNode,
                 ...updatePropagationFct(childNode),
             }) as NodeType
-            const newChildren = [...parentNode.children]
+            const newChildren = [
+                ...parentNode.children.filter(
+                    (child) => child.id != newChild.id,
+                ),
+            ]
             const index = destination.insertIndex ?? parentNode.children.length
             newChildren.splice(index, 0, newChild)
 
