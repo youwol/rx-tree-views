@@ -77,6 +77,7 @@ export namespace ImmutableTree {
     }
 
     export interface Command<NodeType extends Node> {
+        readonly metadata: any
         execute(
             tree: State<NodeType>,
             emitUpdate: boolean,
