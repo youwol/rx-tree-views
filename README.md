@@ -1,7 +1,9 @@
+# @youwol/fv-tree
+
 Tree views using flux-view.
 
 This library is part of the hybrid cloud/local ecosystem 
-[YouWol](https://platform.youwol.com/applications/@youwol/platform/latest)
+[YouWol](https://platform.youwol.com/applications/@youwol/platform/latest).
 
 ## Links
 
