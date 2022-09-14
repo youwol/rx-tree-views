@@ -1028,10 +1028,10 @@
   resolved "https://registry.yarnpkg.com/@youwol/eslint-config/-/eslint-config-0.0.1.tgz#afc2586b8255a1fa56d17d181c42e1d28a8f8598"
   integrity sha512-x2TawReI63KtrgYWO4CCJOgA3JBexrlWyINmVF19bFGU6PaVzYQgY7K0c6nAPiGLLfPqR9QbhzdaOl9LMtnD0g==
 
-"@youwol/flux-view@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@youwol/flux-view/-/flux-view-1.0.0.tgz#592419aa67c1d9d1409aea3c9fed30ed8524c500"
-  integrity sha512-+f+fSdU1iaafbS4ohA2rvNaIomVXKBo6yOqaxf7YVfIgolga6daN2/DWjUPm4nZeSJOLRcE+GG8sjafYS7ILzA==
+"@youwol/flux-view@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@youwol/flux-view/-/flux-view-1.0.3.tgz#a8cd53c007130eb22b8246a8ce6b57c7ebf1ea1a"
+  integrity sha512-zX5YmgROEJEblfsedPx31g3yIYPpJl1jQm/aUW/FrHOy9siSQcALS1wqh/NDJU1AcaRENLiWGHXqeVt3gIIvvg==
   dependencies:
     rxjs "^6.5.5"
 

@@ -21,7 +21,7 @@ template = Template(
         runTime=RunTimeDeps(
             load={
                 "rxjs": "^6.5.5",
-                "@youwol/flux-view": "^1.0.0"
+                "@youwol/flux-view": "^1.0.3"
             }
         ),
         devTime={
