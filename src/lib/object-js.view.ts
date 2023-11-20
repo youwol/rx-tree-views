@@ -62,7 +62,7 @@ export class DataNode extends ImmutableTree.Node {
         classes: string
         nestedIndex: number
     }) {
-        super({ id: id ? id : `${name}_${nestedIndex}`, children }) // `${Math.floor(Math.random()*1e6)}`
+        super({ id: id || `${name}_${nestedIndex}`, children }) // `${Math.floor(Math.random()*1e6)}`
         this.name = name
         this.classes = classes
         this.nestedIndex = nestedIndex

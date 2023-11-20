@@ -396,7 +396,7 @@ export namespace ImmutableTree {
                     }
                     children.forEach((child) => this.setParentRec(child, node))
                     this.getChildren$(node).next(children)
-                    then && then(node, children)
+                    then?.(node, children)
                 }),
             )
         }
@@ -597,10 +597,7 @@ export namespace ImmutableTree {
             }) as NodeType
 
             delete this.parents[node.id]
-            newParent.children &&
-                newParent.children.forEach(
-                    (c) => (this.parents[c.id] = newParent),
-                )
+            newParent.children?.forEach((c) => (this.parents[c.id] = newParent))
 
             this.children$.has(node) && this.children$.delete(node)
 
@@ -740,8 +737,7 @@ export namespace ImmutableTree {
                 ...newAttributes,
                 ...updatePropagationFct(node),
             }) as NodeType
-            newNode.children &&
-                newNode.children.forEach((c) => (this.parents[c.id] = newNode))
+            newNode.children?.forEach((c) => (this.parents[c.id] = newNode))
             this.root = this.cloneTreeAndReplacedChild(
                 node,
                 newNode,
