@@ -1,6 +1,6 @@
 {
-    "name": "@youwol/fv-tree",
-    "description": "Tree views using flux-view.",
+    "name": "@youwol/rx-tree-views",
+    "description": "Tree views using @youwol/rx-vdom.",
     "version": "0.3.0-wip",
     "author": "greinisch@youwol.com",
     "homepage": "https://github.com/youwol/fv-tree#README.md",
