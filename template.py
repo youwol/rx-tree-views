@@ -31,7 +31,6 @@ template = Template(
                 "@youwol/rx-vdom": "^1.0.1"
             }
         ),
-        devTime={"rxjs-spy": "7.5.3"},
     ),
     bundles=Bundles(
         mainModule=MainModule(
