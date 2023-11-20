@@ -1,7 +1,7 @@
 {
     "name": "@youwol/rx-tree-views",
     "description": "Tree views using @youwol/rx-vdom.",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "author": "greinisch@youwol.com",
     "homepage": "https://github.com/youwol/rx-tree-views#README.md",
     "main": "dist/@youwol/rx-tree-views.js",
@@ -51,7 +51,8 @@
     },
     "webpm": {
         "dependencies": {
-            "rxjs": "^7.5.6"
+            "rxjs": "^7.5.6",
+            "@youwol/rx-vdom": "^1.0.1"
         },
         "aliases": []
     }

@@ -32,8 +32,8 @@ const exportedSymbols = {
 const mainEntry : {entryFile: string,loadDependencies:string[]} = {
     "entryFile": "./index.ts",
     "loadDependencies": [
-        "@youwol/flux-view",
-        "rxjs"
+        "rxjs",
+        "@youwol/rx-vdom"
     ]
 }
 
@@ -46,7 +46,7 @@ const entries = {
 export const setup = {
     name:'@youwol/rx-tree-views',
         assetId:'QHlvdXdvbC9yeC10cmVlLXZpZXdz',
-    version:'0.3.0',
+    version:'0.3.1',
     shortDescription:"Tree views using @youwol/rx-vdom.",
     developerDocumentation:'https://platform.youwol.com/applications/@youwol/cdn-explorer/latest?package=@youwol/rx-tree-views&tab=doc',
     npmPackage:'https://www.npmjs.com/package/@youwol/rx-tree-views',
@@ -92,7 +92,7 @@ export const setup = {
         const parameters = installParameters || {}
         const scripts = [
             ...(parameters.scripts || []),
-            `@youwol/rx-tree-views#0.3.0~dist/@youwol/rx-tree-views/${entry.name}.js`
+            `@youwol/rx-tree-views#0.3.1~dist/@youwol/rx-tree-views/${entry.name}.js`
         ]
         const modules = [
             ...(parameters.modules || []),
