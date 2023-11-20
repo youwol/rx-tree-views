@@ -26,7 +26,10 @@ template = Template(
     author=pkg_json["author"],
     dependencies=Dependencies(
         runTime=RunTimeDeps(
-            externals={"rxjs": "^6.5.5", "@youwol/flux-view": "^1.0.3"}
+            externals={
+                "rxjs": "^7.5.6",
+                "@youwol/rx-vdom": "^1.0.1"
+            }
         ),
         devTime={"rxjs-spy": "7.5.3"},
     ),
@@ -52,7 +55,7 @@ for file in [
     ".prettierignore",
     "LICENSE",
     "package.json",
-    "tsconfig.json",
+    # "tsconfig.json" needs to reference `rx-vdom-config.ts`,
     "webpack.config.ts",
 ]:
     shutil.copyfile(src=folder_path / ".template" / file, dst=folder_path / file)
