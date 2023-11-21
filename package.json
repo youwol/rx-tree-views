@@ -1,7 +1,7 @@
 {
     "name": "@youwol/rx-tree-views",
     "description": "Tree views using @youwol/rx-vdom.",
-    "version": "0.3.1",
+    "version": "0.3.2-wip",
     "author": "greinisch@youwol.com",
     "homepage": "https://github.com/youwol/rx-tree-views#README.md",
     "main": "dist/@youwol/rx-tree-views.js",
