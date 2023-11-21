@@ -1,4 +1,10 @@
-import { attr$, child$, VirtualDOM } from '@youwol/flux-view'
+import {
+    VirtualDOM,
+    AnyVirtualDOM,
+    ChildrenLike,
+    RxHTMLElement,
+    RxChild,
+} from '@youwol/rx-vdom'
 import {
     BehaviorSubject,
     Observable,
@@ -6,8 +12,6 @@ import {
     ReplaySubject,
     Subject,
     Subscription,
-} from 'rxjs'
-import {
     distinct,
     filter,
     map,
@@ -15,7 +19,7 @@ import {
     shareReplay,
     take,
     tap,
-} from 'rxjs/operators'
+} from 'rxjs'
 
 export namespace ImmutableTree {
     /*
@@ -396,7 +400,7 @@ export namespace ImmutableTree {
                     }
                     children.forEach((child) => this.setParentRec(child, node))
                     this.getChildren$(node).next(children)
-                    then && then(node, children)
+                    then?.(node, children)
                 }),
             )
         }
@@ -597,10 +601,7 @@ export namespace ImmutableTree {
             }) as NodeType
 
             delete this.parents[node.id]
-            newParent.children &&
-                newParent.children.forEach(
-                    (c) => (this.parents[c.id] = newParent),
-                )
+            newParent.children?.forEach((c) => (this.parents[c.id] = newParent))
 
             this.children$.has(node) && this.children$.delete(node)
 
@@ -740,8 +741,7 @@ export namespace ImmutableTree {
                 ...newAttributes,
                 ...updatePropagationFct(node),
             }) as NodeType
-            newNode.children &&
-                newNode.children.forEach((c) => (this.parents[c.id] = newNode))
+            newNode.children?.forEach((c) => (this.parents[c.id] = newNode))
             this.root = this.cloneTreeAndReplacedChild(
                 node,
                 newNode,
@@ -901,16 +901,16 @@ export namespace ImmutableTree {
         state: State<NodeType>,
         node: NodeType,
         root: NodeType,
-    ) => VirtualDOM
+    ) => AnyVirtualDOM
 
     export type TDropAreaView<NodeType extends Node> = (
         state: State<NodeType>,
         parent: NodeType,
         children: NodeType[],
         insertIndex: number,
-    ) => VirtualDOM
+    ) => AnyVirtualDOM
 
-    export class View<NodeType extends Node> implements VirtualDOM {
+    export class View<NodeType extends Node> implements VirtualDOM<'div'> {
         static staticOptions: TOptions = {
             classes: {
                 header: () => 'd-flex align-items-baseline fv-tree-header ',
@@ -921,7 +921,7 @@ export namespace ImmutableTree {
 
         public readonly state: State<NodeType>
         public readonly tag = 'div'
-        public readonly children: [VirtualDOM]
+        public readonly children: ChildrenLike
 
         public readonly contextMenu$ = new Subject<{
             event: MouseEvent
@@ -964,17 +964,19 @@ export namespace ImmutableTree {
             this.headerView = headerView
             this.dropAreaView = dropAreaView
 
-            const content$ = child$(this.state.root$, (root) => {
-                const rootView = this.nodeView(root, root, 0)
-                rootView.connectedCallback = (elem) =>
-                    this.onConnectedCallbackRoot(elem)
-                return rootView
-            })
-
+            const content$ = {
+                source$: this.state.root$,
+                vdomMap: (root: NodeType) => {
+                    const rootView = this.nodeView(root, root, 0)
+                    rootView.connectedCallback = (elem: RxHTMLElement<'div'>) =>
+                        this.onConnectedCallbackRoot(elem)
+                    return rootView
+                },
+            }
             this.children = [content$]
         }
 
-        private onConnectedCallbackRoot(elem) {
+        private onConnectedCallbackRoot(elem: RxHTMLElement<'div'>) {
             elem.subscriptions.push(
                 this.toggledNode$.subscribe((nodeId) => {
                     const actualValues = this.state.expandedNodes$.getValue()
@@ -993,7 +995,7 @@ export namespace ImmutableTree {
             root: NodeType,
             node: NodeType,
             depth: number,
-        ): VirtualDOM {
+        ): VirtualDOM<'div'> {
             const isLeaf = node.children == undefined
             const nodeExpanded$ = this.state.expandedNodes$.pipe(
                 map((expandedNodes) => expandedNodes.indexOf(node.id) > -1),
@@ -1010,6 +1012,7 @@ export namespace ImmutableTree {
             }
 
             return {
+                tag: 'div',
                 id: 'node-' + node.id,
                 style: { position: 'relative' },
                 children: [
@@ -1025,29 +1028,28 @@ export namespace ImmutableTree {
             node: NodeType,
             nodeExpanded$: Observable<boolean>,
             depth: number,
-        ) {
+        ): VirtualDOM<'div'> {
             const space = this.leftSpacing(depth)
             const itemHeader = this.headerView(this.state, node, root)
             if (itemHeader == undefined) {
                 return undefined
             }
 
-            const class$ = attr$(
-                this.state.selectedNode$,
-                (selected: NodeType) =>
+            const class$ = {
+                source$: this.state.selectedNode$,
+                vdomMap: (selected: NodeType) =>
                     selected != undefined && selected === node
                         ? this.options.classes.headerSelected
                         : '',
-                {
-                    wrapper: (d) => this.headerClassesFct(node) + ' ' + d,
-                    untilFirst: this.headerClassesFct(node),
-                },
-            )
+                wrapper: (d: string) => this.headerClassesFct(node) + ' ' + d,
+                untilFirst: this.headerClassesFct(node),
+            }
 
             return {
+                tag: 'div',
                 class: class$,
                 children: [
-                    { style: { 'min-width': space + 'px' } },
+                    { tag: 'div', style: { minWidth: space + 'px' } },
                     this.handleView(node, nodeExpanded$),
                     itemHeader,
                 ],
@@ -1073,9 +1075,10 @@ export namespace ImmutableTree {
         protected arianeLine(depth: number, isLeaf: boolean) {
             const space = this.leftSpacing(depth)
             return {
+                tag: 'div' as const,
                 class: 'fv-tree-arianeLine',
                 style: {
-                    position: 'absolute',
+                    position: 'absolute' as const,
                     top: `${this.options.stepPadding}px`,
                     left: space + 'px',
                     'border-left': isLeaf ? 'none' : 'solid',
@@ -1088,23 +1091,21 @@ export namespace ImmutableTree {
         protected handleView(
             node: NodeType,
             nodeExpanded$: Observable<boolean>,
-        ) {
+        ): VirtualDOM<'div'> | VirtualDOM<'i'> {
             const isLeaf = node.children == undefined
 
             return isLeaf
-                ? {}
+                ? { tag: 'div' as const }
                 : {
-                      tag: 'i',
-                      class: attr$(
-                          nodeExpanded$,
-                          (expanded): string =>
+                      tag: 'i' as const,
+                      class: {
+                          source$: nodeExpanded$,
+                          vdomMap: (expanded): string =>
                               expanded
                                   ? 'fa-caret-down fv-tree-expanded'
                                   : 'fa-caret-right',
-                          {
-                              wrapper: (d) => 'pr-2 fas fv-tree-expand ' + d,
-                          },
-                      ),
+                          wrapper: (d) => 'pr-2 fas fv-tree-expand ' + d,
+                      },
                       onclick: (event) => {
                           this.toggledNode$.next(node.id)
                           event.stopPropagation()
@@ -1121,47 +1122,54 @@ export namespace ImmutableTree {
             node: NodeType,
             nodeExpanded$: Observable<boolean>,
             depth: number,
-        ) {
+        ): RxChild<NodeType[], VirtualDOM<'div'>> {
             const children$ = this.state.getChildren$(node).pipe(
                 filter((d) => d != undefined),
                 distinct(),
             )
-            return child$(children$, (children) => {
-                const filteredViews = children
-                    .map((child) => {
-                        return {
-                            child,
-                            view: this.nodeView(root, child, depth + 1),
-                        }
-                    })
-                    .filter(({ view }) => view != undefined)
-                const filteredChildren = filteredViews.map(({ child }) => child)
-
-                return {
-                    class: attr$(nodeExpanded$, (expanded) =>
-                        expanded ? 'd-block' : 'd-none',
-                    ),
-                    children: filteredViews
-                        .map(({ view }, i) => {
-                            const dropView = (insertIndex) =>
-                                this.dropAreaView &&
-                                this.dropAreaView(
-                                    this.state,
-                                    node,
-                                    filteredChildren,
-                                    insertIndex,
-                                )
-                            return [
-                                dropView(i),
-                                view,
-                                i == children.length - 1 &&
-                                    dropView(children.length),
-                            ]
+            return {
+                source$: children$,
+                vdomMap: (children: NodeType[]) => {
+                    const filteredViews = children
+                        .map((child) => {
+                            return {
+                                child,
+                                view: this.nodeView(root, child, depth + 1),
+                            }
                         })
-                        .flat()
-                        .filter((d) => d != undefined),
-                }
-            })
+                        .filter(({ view }) => view != undefined)
+                    const filteredChildren = filteredViews.map(
+                        ({ child }) => child,
+                    )
+
+                    return {
+                        tag: 'div',
+                        class: {
+                            source$: nodeExpanded$,
+                            vdomMap: (expanded: boolean): string =>
+                                expanded ? 'd-block' : 'd-none',
+                        },
+                        children: filteredViews
+                            .map(({ view }, i) => {
+                                const dropView = (insertIndex) =>
+                                    this.dropAreaView?.(
+                                        this.state,
+                                        node,
+                                        filteredChildren,
+                                        insertIndex,
+                                    )
+                                return [
+                                    dropView(i),
+                                    view,
+                                    i == children.length - 1 &&
+                                        dropView(children.length),
+                                ]
+                            })
+                            .flat()
+                            .filter((d) => d != undefined),
+                    }
+                },
+            }
         }
     }
 }

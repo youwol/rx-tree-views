@@ -1,3 +1,5 @@
+var Select
+
 class ThemeItemData extends Select.ItemData {
     constructor(id, name) {
         super(id, name)
@@ -29,7 +31,7 @@ let sub = stateCss.selection$.subscribe((themeItem) => {
     document.head.appendChild(themeItem.link())
 })
 
-var vDomThemes = {
+export const vDomThemes = {
     class: 'd-flex fv-text-focus justify-content-center',
     children: [
         { class: 'px-2', innerText: 'Current theme' },

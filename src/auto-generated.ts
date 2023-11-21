@@ -1,8 +1,8 @@
 
 const runTimeDependencies = {
     "externals": {
-        "rxjs": "^6.5.5",
-        "@youwol/flux-view": "^1.0.3"
+        "rxjs": "^7.5.6",
+        "@youwol/rx-vdom": "^1.0.1"
     },
     "includedInBundle": {}
 }
@@ -10,57 +10,49 @@ const externals = {
     "rxjs": {
         "commonjs": "rxjs",
         "commonjs2": "rxjs",
-        "root": "rxjs_APIv6"
+        "root": "rxjs_APIv7"
     },
-    "@youwol/flux-view": {
-        "commonjs": "@youwol/flux-view",
-        "commonjs2": "@youwol/flux-view",
-        "root": "@youwol/flux-view_APIv1"
-    },
-    "rxjs/operators": {
-        "commonjs": "rxjs/operators",
-        "commonjs2": "rxjs/operators",
-        "root": [
-            "rxjs_APIv6",
-            "operators"
-        ]
+    "@youwol/rx-vdom": {
+        "commonjs": "@youwol/rx-vdom",
+        "commonjs2": "@youwol/rx-vdom",
+        "root": "@youwol/rx-vdom_APIv1"
     }
 }
 const exportedSymbols = {
     "rxjs": {
-        "apiKey": "6",
+        "apiKey": "7",
         "exportedSymbol": "rxjs"
     },
-    "@youwol/flux-view": {
+    "@youwol/rx-vdom": {
         "apiKey": "1",
-        "exportedSymbol": "@youwol/flux-view"
+        "exportedSymbol": "@youwol/rx-vdom"
     }
 }
 
 const mainEntry : {entryFile: string,loadDependencies:string[]} = {
     "entryFile": "./index.ts",
     "loadDependencies": [
-        "@youwol/flux-view",
-        "rxjs"
+        "rxjs",
+        "@youwol/rx-vdom"
     ]
 }
 
 const secondaryEntries : {[k:string]:{entryFile: string, name: string, loadDependencies:string[]}}= {}
 
 const entries = {
-     '@youwol/fv-tree': './index.ts',
-    ...Object.values(secondaryEntries).reduce( (acc,e) => ({...acc, [`@youwol/fv-tree/${e.name}`]:e.entryFile}), {})
+     '@youwol/rx-tree-views': './index.ts',
+    ...Object.values(secondaryEntries).reduce( (acc,e) => ({...acc, [`@youwol/rx-tree-views/${e.name}`]:e.entryFile}), {})
 }
 export const setup = {
-    name:'@youwol/fv-tree',
-        assetId:'QHlvdXdvbC9mdi10cmVl',
-    version:'0.2.3',
-    shortDescription:"Tree views using flux-view.",
-    developerDocumentation:'https://platform.youwol.com/applications/@youwol/cdn-explorer/latest?package=@youwol/fv-tree&tab=doc',
-    npmPackage:'https://www.npmjs.com/package/@youwol/fv-tree',
-    sourceGithub:'https://github.com/youwol/fv-tree',
-    userGuide:'https://l.youwol.com/doc/@youwol/fv-tree',
-    apiVersion:'02',
+    name:'@youwol/rx-tree-views',
+        assetId:'QHlvdXdvbC9yeC10cmVlLXZpZXdz',
+    version:'0.3.2-wip',
+    shortDescription:"Tree views using @youwol/rx-vdom.",
+    developerDocumentation:'https://platform.youwol.com/applications/@youwol/cdn-explorer/latest?package=@youwol/rx-tree-views&tab=doc',
+    npmPackage:'https://www.npmjs.com/package/@youwol/rx-tree-views',
+    sourceGithub:'https://github.com/youwol/rx-tree-views',
+    userGuide:'https://l.youwol.com/doc/@youwol/rx-tree-views',
+    apiVersion:'03',
     runTimeDependencies,
     externals,
     exportedSymbols,
@@ -85,7 +77,7 @@ export const setup = {
             modules,
             scripts,
         }).then(() => {
-            return window[`@youwol/fv-tree_APIv02`]
+            return window[`@youwol/rx-tree-views_APIv03`]
         })
     },
     installAuxiliaryModule: ({name, cdnClient, installParameters}:{
@@ -100,7 +92,7 @@ export const setup = {
         const parameters = installParameters || {}
         const scripts = [
             ...(parameters.scripts || []),
-            `@youwol/fv-tree#0.2.3~dist/@youwol/fv-tree/${entry.name}.js`
+            `@youwol/rx-tree-views#0.3.2-wip~dist/@youwol/rx-tree-views/${entry.name}.js`
         ]
         const modules = [
             ...(parameters.modules || []),
@@ -111,7 +103,7 @@ export const setup = {
             modules,
             scripts,
         }).then(() => {
-            return window[`@youwol/fv-tree/${entry.name}_APIv02`]
+            return window[`@youwol/rx-tree-views/${entry.name}_APIv03`]
         })
     },
     getCdnDependencies(name?: string){

@@ -1,19 +1,19 @@
-# @youwol/fv-tree
+# @youwol/rx-tree-views
 
-Tree views using flux-view.
+Tree views using @youwol/rx-vdom.
 
 This library is part of the hybrid cloud/local ecosystem
 [YouWol](https://platform.youwol.com/applications/@youwol/platform/latest).
 
 ## Links
 
-[Online user-guide](https://l.youwol.com/doc/@youwol/fv-tree)
+[Online user-guide](https://l.youwol.com/doc/@youwol/rx-tree-views)
 
-[Developers documentation](https://platform.youwol.com/applications/@youwol/cdn-explorer/latest?package=@youwol/fv-tree&tab=doc)
+[Developers documentation](https://platform.youwol.com/applications/@youwol/cdn-explorer/latest?package=@youwol/rx-tree-views&tab=doc)
 
-[Package on npm](https://www.npmjs.com/package/@youwol/fv-tree)
+[Package on npm](https://www.npmjs.com/package/@youwol/rx-tree-views)
 
-[Source on GitHub](https://github.com/youwol/fv-tree)
+[Source on GitHub](https://github.com/youwol/rx-tree-views)
 
 # Installation, Build, Test
 
@@ -38,6 +38,8 @@ yarn build:prod
 ```
 
 ---
+
+<!-- no specific test configuration documented -->
 
 To run tests:
 

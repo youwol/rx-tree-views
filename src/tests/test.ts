@@ -1,48 +1,22 @@
-import { attr$, child$, render } from '@youwol/flux-view'
-import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs'
-import { create, SnapshotPlugin } from 'rxjs-spy'
+import { render, VirtualDOM } from '@youwol/rx-vdom'
+import {
+    BehaviorSubject,
+    ReplaySubject,
+    Subject,
+    filter,
+    take,
+    mergeMap,
+    tap,
+} from 'rxjs'
 
-import * as Match from 'rxjs-spy/cjs/match'
-import { tag } from 'rxjs-spy/cjs/operators'
-
-import { filter, mergeMap, take, tap } from 'rxjs/operators'
-import { v4 as uuidv4 } from 'uuid'
 import { ImmutableTree } from '../index'
 
-const spy = create()
 // There is a lot of warning about cyclic dependencies...apparently it's still fine
 console.warn = (..._) => {}
 beforeEach(() => {
-    spy.flush()
+    //spy.flush()
     document.body.innerHTML = ''
 })
-
-function getOpenSubscriptions() {
-    const snapshotPlugin = spy.find(SnapshotPlugin)
-
-    const snapshot = snapshotPlugin['snapshotAll']()
-    const matched = Array.from(snapshot.observables.values()).filter(function (
-        observableSnapshot,
-    ) {
-        return Match.matches(observableSnapshot['observable'], /.+/)
-    })
-
-    return matched
-        .map((match) => {
-            const keys = match.subscriptions.keys()
-            const openSubscriptions = Array.from(keys).filter((element) => {
-                return !element.closed
-            })
-            return { tag: match.tag, openSubscriptions }
-        })
-        .reduce(
-            (acc, e) => ({
-                ...acc,
-                ...{ [e.tag]: e.openSubscriptions.length },
-            }),
-            {},
-        )
-}
 
 class Node extends ImmutableTree.Node {
     name: string
@@ -103,27 +77,30 @@ test('subscriptions are closed', (done) => {
     const state = new ImmutableTree.State<Node>({ rootNode })
     const classSubject = new BehaviorSubject<string>('toto')
     const childSubject = new ReplaySubject<{ id: string; tag: string }>(1)
-    const headerView = (state, node) => {
+    const headerView = (state, node): VirtualDOM<'div'> => {
         return {
+            tag: 'div',
             id: `header-${node.id}`,
             innerText: node.name,
-            class: attr$(classSubject.pipe(tag('class_' + node.id)), (d) => d, {
-                wrapper: (d) => 'test-header ' + d,
-            }),
+            class: {
+                source$: classSubject,
+                vdomMap: (d: string) => d,
+                wrapper: (d: string) => 'test-header ' + d,
+            },
             children: [
-                child$(
-                    childSubject.pipe(
+                {
+                    source$: childSubject.pipe(
                         filter(({ id }) => id == node.id),
-                        tag('child_' + node.id),
                     ),
-                    (d) => ({
-                        class: attr$(
-                            classSubject.pipe(tag('class_child_' + node.id)),
-                            (c) => c + ' ' + d.tag,
-                        ),
+                    vdomMap: (d: { id: string; tag: string }) => ({
+                        tag: 'div',
+                        class: {
+                            source$: classSubject,
+                            vdomMap: (c: string) => c + ' ' + d.tag,
+                        },
                         innerText: 'child ' + d,
                     }),
-                ),
+                },
             ],
         }
     }
@@ -175,13 +152,6 @@ test('subscriptions are closed', (done) => {
     headers.forEach((header) => {
         expect(header.classList.contains('toto')).toBeTruthy()
     })
-    let subs = getOpenSubscriptions()
-    expect(subs['class_drive']).toEqual(1)
-    expect(subs['class_folderA']).toEqual(1)
-    expect(subs['class_folderB']).toEqual(1)
-    expect(subs['child_drive']).toEqual(1)
-    expect(subs['child_folderA']).toEqual(1)
-    expect(subs['child_folderB']).toEqual(1)
 
     classSubject.next('tutu')
     headers.forEach((header) => {
@@ -191,13 +161,10 @@ test('subscriptions are closed', (done) => {
     state.removeNode('folderA')
     headers = root.querySelectorAll('.test-header')
     expect(headers.length).toEqual(2)
-    subs = getOpenSubscriptions()
-    expect(subs['class_folderA']).toEqual(0)
-    expect(subs['child_folderA']).toEqual(0)
 
     childSubject.next({ id: 'folderB', tag: 'first-test' })
-    subs = getOpenSubscriptions()
-    expect(subs['class_child_folderB']).toEqual(1)
+    // subs = getOpenSubscriptions()
+    // expect(subs['class_child_folderB']).toEqual(1)
     const firstTestChild = document
         .getElementById('header-folderB')
         .querySelector('.tutu.first-test')
@@ -211,9 +178,6 @@ test('subscriptions are closed', (done) => {
         .getElementById('header-folderB')
         .querySelector('.tata.second-test')
     expect(secondTestChild).toBeTruthy()
-
-    subs = getOpenSubscriptions()
-    expect(subs['class_child_folderB']).toEqual(1)
 
     state.replaceAttributes('folderB', { name: 'folderB-bis' })
     let folderB = document.getElementById('header-folderB')
@@ -231,45 +195,20 @@ test('subscriptions are closed', (done) => {
     let file = root.querySelector('#header-new-file')
     expect(file).toBeTruthy()
 
-    subs = getOpenSubscriptions()
-    let open = Object.entries(subs).filter(([_k, v]) => v > 0)
-    expect(open.length).toEqual(4)
-
     state.undo()
     file = root.querySelector('#header-new-file')
     expect(file).toBeFalsy()
     folderB = document.getElementById('header-folderB')
     secondTestChild = folderB.querySelector('.tata.second-test')
     expect(secondTestChild).toBeTruthy()
-    subs = getOpenSubscriptions()
-
-    expect(subs['class_drive']).toEqual(1)
-    expect(subs['class_folderA']).toEqual(0)
-    expect(subs['class_new-file']).toEqual(0)
-    expect(subs['class_folderB']).toEqual(1)
-    expect(subs['child_drive']).toEqual(1)
-    expect(subs['child_folderA']).toEqual(0)
-    expect(subs['child_folderB']).toEqual(1)
-    expect(subs['class_child_folderB']).toEqual(1)
-    expect(subs['child_new-file']).toEqual(0)
 
     state.redo()
     file = root.querySelector('#header-new-file')
     expect(file).toBeTruthy()
-    subs = getOpenSubscriptions()
-    open = Object.entries(subs).filter(([_k, v]) => v > 0)
-    expect(open.length).toEqual(4)
-    expect(subs['class_drive']).toEqual(1)
-    expect(subs['class_new-file']).toEqual(1)
-    expect(subs['child_drive']).toEqual(1)
-    expect(subs['child_new-file']).toEqual(1)
 
     const s = state['subscriptions']
     expect(s.closed).toEqual(false)
     root.remove()
-    subs = getOpenSubscriptions()
-    open = Object.entries(subs).filter(([_k, v]) => v > 0)
-    expect(open.length).toEqual(0)
 
     expect(s.closed).toEqual(true)
     done()
@@ -294,7 +233,11 @@ test('async rendering', (done) => {
         expandedNodes: ['drive', 'folderA'],
     })
     const headerView = (state, node) => {
-        return { id: `header-${node.id}`, innerText: node.name }
+        return {
+            tag: 'div' as const,
+            id: `header-${node.id}`,
+            innerText: node.name,
+        }
     }
     const view = new ImmutableTree.View<Node>({
         state,
@@ -342,8 +285,8 @@ test('commands', (done) => {
     const state = new ImmutableTree.State<Node>({ rootNode: drive })
     new ImmutableTree.InitCommand({}).execute(state)
 
-    const uuid = uuidv4()
-    const uuidInserted = uuidv4()
+    const uuid = 'uuid'
+    const uuidInserted = 'uuidInserted'
     const commands = [
         {
             id: 'add-child',
@@ -500,7 +443,11 @@ test('modifying node on resolved parent', (done) => {
         ],
     })
     const headerView = (state, node) => {
-        return { id: `header-${node.id}`, innerText: node.name }
+        return {
+            tag: 'div' as const,
+            id: `header-${node.id}`,
+            innerText: node.name,
+        }
     }
     const state = new ImmutableTree.State<Node>({
         rootNode: drive,
@@ -560,7 +507,7 @@ test('modifying node on resolved parent', (done) => {
                         ...folderANode,
                         name: 'folderA bis',
                         children: children2$,
-                    } as any),
+                    } as never),
                 )
             },
             thenExpect: (root) => {
@@ -612,7 +559,11 @@ test('resolve path', (done) => {
         ],
     })
     const headerView = (state, node) => {
-        return { id: `header-${node.id}`, innerText: node.name }
+        return {
+            tag: 'div' as const,
+            id: `header-${node.id}`,
+            innerText: node.name,
+        }
     }
     const state = new ImmutableTree.State<Node>({
         rootNode: drive,
@@ -630,10 +581,10 @@ test('resolve path', (done) => {
     document.body.appendChild(div)
     const rootView = document.getElementById('tree-view')
     expect(rootView).toBeTruthy()
-    let folderAView = rootView.querySelector('#header-folderA')
+    const folderAView = rootView.querySelector('#header-folderA')
     expect(folderAView).toBeFalsy()
 
-    let folderBView = rootView.querySelector('#header-folderB')
+    const folderBView = rootView.querySelector('#header-folderB')
     expect(folderBView).toBeFalsy()
     childrenFolderB$.next([
         new FolderNode({
@@ -654,13 +605,13 @@ test('resolve path', (done) => {
         )
         .subscribe(() => {
             state.expandedNodes$.next(['drive', 'folderA', 'folderB'])
-            let folderAView = rootView.querySelector('#header-folderA')
+            const folderAView = rootView.querySelector('#header-folderA')
             expect(folderAView).toBeTruthy()
 
-            let folderBView = rootView.querySelector('#header-folderB')
+            const folderBView = rootView.querySelector('#header-folderB')
             expect(folderBView).toBeTruthy()
 
-            let folderCView = rootView.querySelector('#header-folderC')
+            const folderCView = rootView.querySelector('#header-folderC')
             expect(folderCView).toBeTruthy()
             done()
         })

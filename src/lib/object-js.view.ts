@@ -1,6 +1,6 @@
-import { BehaviorSubject, Observable, of } from 'rxjs'
-import { map } from 'rxjs/operators'
+import { BehaviorSubject, Observable, of, map } from 'rxjs'
 import { ImmutableTree } from './immutable-tree.view'
+import { VirtualDOM } from '@youwol/rx-vdom'
 
 type DataObject = Record<string, unknown>
 
@@ -62,7 +62,7 @@ export class DataNode extends ImmutableTree.Node {
         classes: string
         nestedIndex: number
     }) {
-        super({ id: id ? id : `${name}_${nestedIndex}`, children }) // `${Math.floor(Math.random()*1e6)}`
+        super({ id: id || `${name}_${nestedIndex}`, children }) // `${Math.floor(Math.random()*1e6)}`
         this.name = name
         this.classes = classes
         this.nestedIndex = nestedIndex
@@ -313,7 +313,7 @@ export class View extends ImmutableTree.View<DataNode> {
     }
 
     static getStyling(options): TOptions {
-        return { ...View.defaultOptions, ...(options ? options : {}) }
+        return { ...View.defaultOptions, ...(options || {}) }
     }
 
     constructor({
@@ -334,9 +334,13 @@ export class View extends ImmutableTree.View<DataNode> {
     }
 }
 
-export function dataNodeHeaderView(state: State, node: DataNode) {
+export function dataNodeHeaderView(
+    state: State,
+    node: DataNode,
+): VirtualDOM<'div'> {
     if (node instanceof UnknownNode) {
         return {
+            tag: 'div',
             class: 'd-flex fv-text-disabled flex-wrap',
             innerText: node.name,
         }
@@ -370,18 +374,18 @@ export function dataNodeHeaderView(state: State, node: DataNode) {
     }
 
     return {
+        tag: 'div',
         class: 'd-flex fv-pointer',
         children: [
+            { tag: 'div', innerText: node.name },
             {
-                innerText: node.name,
-            },
-            {
+                tag: 'div',
                 class: 'px-2 w-100 ' + node.classes,
                 innerHTML: `<i>${content}</i>`,
                 style: {
-                    'white-space': 'nowrap',
+                    whiteSpace: 'nowrap',
                     overflow: 'hidden',
-                    'text-overflow': 'ellipsis',
+                    textOverflow: 'ellipsis',
                     //"max-width": `${state.stringLengthLimit * 10}px`
                 },
             },

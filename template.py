@@ -16,6 +16,10 @@ folder_path = Path(__file__).parent
 
 pkg_json = parse_json(folder_path / "package.json")
 
+externals = {
+    "rxjs": "^7.5.6",
+    "@youwol/rx-vdom": "^1.0.1"
+}
 
 template = Template(
     path=folder_path,
@@ -26,14 +30,13 @@ template = Template(
     author=pkg_json["author"],
     dependencies=Dependencies(
         runTime=RunTimeDeps(
-            externals={"rxjs": "^6.5.5", "@youwol/flux-view": "^1.0.3"}
+            externals=externals
         ),
-        devTime={"rxjs-spy": "7.5.3"},
     ),
     bundles=Bundles(
         mainModule=MainModule(
             entryFile="./index.ts",
-            loadDependencies=["@youwol/flux-view", "rxjs"],
+            loadDependencies=list(externals.keys()),
         )
     ),
     userGuide=True,
@@ -52,7 +55,7 @@ for file in [
     ".prettierignore",
     "LICENSE",
     "package.json",
-    "tsconfig.json",
+    # "tsconfig.json" needs to reference `rx-vdom-config.ts`,
     "webpack.config.ts",
 ]:
     shutil.copyfile(src=folder_path / ".template" / file, dst=folder_path / file)
