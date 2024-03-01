@@ -46,7 +46,7 @@ const entries = {
 export const setup = {
     name:'@youwol/rx-tree-views',
         assetId:'QHlvdXdvbC9yeC10cmVlLXZpZXdz',
-    version:'0.3.2-wip',
+    version:'0.3.3',
     shortDescription:"Tree views using @youwol/rx-vdom.",
     developerDocumentation:'https://platform.youwol.com/applications/@youwol/cdn-explorer/latest?package=@youwol/rx-tree-views&tab=doc',
     npmPackage:'https://www.npmjs.com/package/@youwol/rx-tree-views',
@@ -92,7 +92,7 @@ export const setup = {
         const parameters = installParameters || {}
         const scripts = [
             ...(parameters.scripts || []),
-            `@youwol/rx-tree-views#0.3.2-wip~dist/@youwol/rx-tree-views/${entry.name}.js`
+            `@youwol/rx-tree-views#0.3.3~dist/@youwol/rx-tree-views/${entry.name}.js`
         ]
         const modules = [
             ...(parameters.modules || []),
