@@ -391,6 +391,7 @@ export namespace ImmutableTree {
 
             if (Array.isArray(node.children)) {
                 this.getChildren$(node).next(node.children as NodeType[])
+                then?.(node, node.children as NodeType[])
                 return
             }
             this.subscriptions.add(
