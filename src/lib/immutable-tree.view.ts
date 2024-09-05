@@ -891,12 +891,19 @@ export namespace ImmutableTree {
 
     //-------------------------------------------------------------------------
     //-------------------------------------------------------------------------
+
+    export type AutoScrollMode = {
+        trigger: 'always' | 'not-visible'
+        // in % of the scrollable parent height
+        top: number
+    }
     export type TOptions = {
         classes?: {
             header?: string | ((Node) => string)
             headerSelected?: string
         }
         stepPadding?: number
+        autoScroll?: AutoScrollMode
     }
     export type THeaderView<NodeType extends Node> = (
         state: State<NodeType>,
@@ -912,12 +919,13 @@ export namespace ImmutableTree {
     ) => AnyVirtualDOM
 
     export class View<NodeType extends Node> implements VirtualDOM<'div'> {
-        static staticOptions: TOptions = {
+        static readonly staticOptions: TOptions = {
             classes: {
                 header: () => 'd-flex align-items-baseline fv-tree-header ',
                 headerSelected: 'fv-tree-selected fv-text-focus',
             },
             stepPadding: 15,
+            autoScroll: undefined,
         }
 
         public readonly state: State<NodeType>
@@ -928,7 +936,7 @@ export namespace ImmutableTree {
             event: MouseEvent
             data: { state: State<Node>; node: NodeType; root: NodeType }
         }>()
-
+        public readonly selectedElement$ = new ReplaySubject<HTMLDivElement>(1)
         private readonly toggledNode$ = new Subject<string>()
         private readonly subscriptions = new Array<Subscription>()
 
@@ -936,6 +944,7 @@ export namespace ImmutableTree {
         private readonly dropAreaView: TDropAreaView<NodeType>
         private readonly options: TOptions
         private readonly headerClassesFct: (n: NodeType) => string
+        private scrollableParent: HTMLElement | undefined
 
         connectedCallback = (elem) => {
             elem.subscriptions = elem.subscriptions.concat(this.subscriptions)
@@ -975,6 +984,15 @@ export namespace ImmutableTree {
                 },
             }
             this.children = [content$]
+            if (this.options.autoScroll) {
+                this.connectedCallback = (elem: RxHTMLElement<'div'>) => {
+                    elem.ownSubscriptions(
+                        this.selectedElement$.subscribe((selected) => {
+                            this.scrollNav(selected)
+                        }),
+                    )
+                }
+            }
         }
 
         private onConnectedCallbackRoot(elem: RxHTMLElement<'div'>) {
@@ -1069,6 +1087,18 @@ export namespace ImmutableTree {
                     ) {
                         this.toggledNode$.next(node.id)
                     }
+                },
+                connectedCallback: (elem) => {
+                    elem.ownSubscriptions(
+                        this.state.selectedNode$.subscribe((selected) => {
+                            if (selected === node) {
+                                setTimeout(
+                                    () => this.selectedElement$.next(elem),
+                                    0,
+                                )
+                            }
+                        }),
+                    )
                 },
             }
         }
@@ -1172,5 +1202,63 @@ export namespace ImmutableTree {
                 },
             }
         }
+
+        private scrollNav(selected: HTMLDivElement) {
+            if (!this.scrollableParent) {
+                this.scrollableParent = getNearestScrollableParent(selected)
+            }
+            const scrollable = this.scrollableParent
+            if (!scrollable) {
+                return
+            }
+            if (
+                this.options.autoScroll.trigger === 'not-visible' &&
+                isElementInViewport(selected)
+            ) {
+                return
+            }
+            let targetOffsetTop = selected.offsetTop
+            let parent = selected.offsetParent as HTMLElement
+            while (parent && parent !== scrollable) {
+                targetOffsetTop += parent.offsetTop
+                parent = parent.offsetParent as HTMLElement
+            }
+            const br = scrollable.getBoundingClientRect()
+            scrollable.scrollTo({
+                top:
+                    targetOffsetTop -
+                    br.top -
+                    (this.options.autoScroll.top / 100) * (br.bottom - br.top),
+                left: 0,
+                behavior: 'smooth',
+            })
+        }
     }
+}
+
+function getNearestScrollableParent(element: HTMLElement) {
+    let parent = element.parentElement
+
+    while (parent) {
+        const overflowY = window.getComputedStyle(parent).overflowY
+        if (overflowY === 'auto' || overflowY === 'scroll') {
+            return parent
+        }
+        parent = parent.parentElement
+    }
+
+    return null
+}
+
+function isElementInViewport(element: HTMLElement) {
+    const rect = element.getBoundingClientRect()
+
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <=
+            (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <=
+            (window.innerWidth || document.documentElement.clientWidth)
+    )
 }
